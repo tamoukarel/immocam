@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0b3b91;
+  --color-brand-blue: #1e88e5;
+  --color-blue-light: #e8f4fd;
+  --color-teal: #00c2a8;
+  --color-teal-light: #e0f8f5;
+  --color-gold: #f4b400;
+  --color-bg: #f0f4ff;
+  --font-heading:
+    'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Arial, sans-serif;
+  --font-sans:
+    'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--font-heading);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Champs de formulaire partagés (Publier, Alertes...) */
+.fl {
+  @apply block text-[10px] font-bold text-navy mb-1.5 tracking-wide uppercase font-heading;
+}
+.fi,
+.fs {
+  @apply w-full border-2 border-slate-100 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-brand-blue;
+}
+.btn-prev {
+  @apply flex-1 bg-bg text-slate-600 border-2 border-slate-100 rounded-xl py-3 text-sm font-bold font-heading;
+}
+.btn-next {
+  @apply flex-[2] bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-xl py-3 text-sm font-bold font-heading shadow;
+}
