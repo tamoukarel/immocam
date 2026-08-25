@@ -6,15 +6,36 @@ export interface Profil {
   id: string
   telephone: string
   nom: string | null
+  photo: string | null
+  estAdmin: boolean
 }
 
 interface AuthState {
   session: Session | null
   profil: Profil | null
   loading: boolean
+  mettreAJourNom: (nom: string) => Promise<void>
+  mettreAJourPhoto: (photo: string) => Promise<void>
 }
 
-const AuthContext = createContext<AuthState>({ session: null, profil: null, loading: true })
+const AuthContext = createContext<AuthState>({
+  session: null,
+  profil: null,
+  loading: true,
+  mettreAJourNom: async () => {},
+  mettreAJourPhoto: async () => {},
+})
+
+function versProfil(data: {
+  id: string
+  nom: string | null
+  photo: string | null
+  est_admin: boolean
+  profils_prive: { telephone: string } | { telephone: string }[] | null
+}): Profil {
+  const prive = Array.isArray(data.profils_prive) ? data.profils_prive[0] : data.profils_prive
+  return { id: data.id, nom: data.nom, photo: data.photo, estAdmin: data.est_admin, telephone: prive?.telephone ?? '' }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -48,15 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false
 
     async function chargerOuCreerProfil() {
+      // Le téléphone vit dans profils_prive (jamais public, voir schema.sql) ;
+      // on le rejoint ici puisqu'on lit son propre profil.
       const { data, error } = await supabase!
         .from('profils')
-        .select('id, telephone, nom')
+        .select('id, nom, photo, est_admin, profils_prive(telephone)')
         .eq('id', session!.user.id)
         .single()
 
       if (data) {
         if (!cancelled) {
-          setProfil(data as Profil)
+          setProfil(versProfil(data))
           setLoading(false)
         }
         return
@@ -69,14 +92,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { data: nouveauProfil } = await supabase!
-        .from('profils')
-        .insert({ id: session!.user.id, telephone: session!.user.phone ?? '' })
-        .select()
-        .single()
+      const { data: nouveauProfil } = await supabase!.from('profils').insert({ id: session!.user.id }).select('id, nom, photo, est_admin').single()
+
+      if (nouveauProfil) {
+        await supabase!.from('profils_prive').insert({ id: session!.user.id, telephone: session!.user.phone ?? '' })
+      }
 
       if (!cancelled) {
-        setProfil(nouveauProfil as Profil | null)
+        setProfil(
+          nouveauProfil
+            ? {
+                id: nouveauProfil.id,
+                nom: nouveauProfil.nom,
+                photo: nouveauProfil.photo,
+                estAdmin: nouveauProfil.est_admin,
+                telephone: session!.user.phone ?? '',
+              }
+            : null,
+        )
         setLoading(false)
       }
     }
@@ -88,7 +121,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session])
 
-  return <AuthContext.Provider value={{ session, profil, loading }}>{children}</AuthContext.Provider>
+  async function mettreAJourNom(nom: string) {
+    if (!supabase || !profil) return
+    const { error } = await supabase.from('profils').update({ nom }).eq('id', profil.id)
+    if (!error) setProfil((prev) => (prev ? { ...prev, nom } : prev))
+  }
+
+  async function mettreAJourPhoto(photo: string) {
+    if (!supabase || !profil) return
+    const { error } = await supabase.from('profils').update({ photo }).eq('id', profil.id)
+    if (!error) setProfil((prev) => (prev ? { ...prev, photo } : prev))
+  }
+
+  return (
+    <AuthContext.Provider value={{ session, profil, loading, mettreAJourNom, mettreAJourPhoto }}>{children}</AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

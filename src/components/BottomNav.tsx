@@ -11,7 +11,7 @@ const LIENS = [
 export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t-2 border-slate-100 shadow-[0_-4px_20px_rgba(11,59,145,0.08)]">
-      <div className="max-w-md mx-auto flex pt-2 pb-4">
+      <div className="max-w-md md:max-w-xl mx-auto flex pt-2 pb-4">
         {LIENS.map(({ to, label, icone: Icone, fin }) => (
           <NavLink
             key={to}

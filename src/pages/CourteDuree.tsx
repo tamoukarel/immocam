@@ -13,6 +13,7 @@ export function CourteDuree() {
       .from('annonces')
       .select('*')
       .eq('est_courte_duree', true)
+      .eq('statut', 'dispo')
       .then(({ data }) => setAnnonces((data as Annonce[]) ?? []))
   }, [])
 
@@ -29,8 +30,8 @@ export function CourteDuree() {
           Locations disponibles
         </div>
       </div>
-      <div className="px-5 pb-4 flex flex-col gap-3">
-        {annonces.length === 0 && <p className="text-center text-sm text-slate-400 py-6">Aucune location courte durée pour l'instant.</p>}
+      <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {annonces.length === 0 && <p className="col-span-full text-center text-sm text-slate-400 py-6">Aucune location courte durée pour l'instant.</p>}
         {annonces.map((a) => (
           <AnnonceCard key={a.id} annonce={a} />
         ))}

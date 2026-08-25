@@ -26,7 +26,7 @@ export function Coloc() {
     setProfils(liste)
     if (profil) setMonProfil(liste.find((p) => p.utilisateur_id === profil.id) ?? null)
 
-    const { data: logs } = await supabase.from('annonces').select('*').eq('type', 'location').lt('prix', 100000)
+    const { data: logs } = await supabase.from('annonces').select('*').eq('type', 'location').eq('statut', 'dispo').lt('prix', 100000)
     setLogements((logs as Annonce[]) ?? [])
   }
 
@@ -65,7 +65,7 @@ export function Coloc() {
         <p className="text-xs text-slate-500">Divise ton loyer par 2 ou 3 · Trouve un·e colocataire</p>
       </div>
 
-      <div className="px-5 mb-4">
+      <div className="px-5 mb-4 md:max-w-lg">
         {profil ? (
           monProfil ? (
             <div className="bg-teal-light border-2 border-teal/30 rounded-2xl p-3.5 flex items-center justify-between">
@@ -100,8 +100,8 @@ export function Coloc() {
       <div className="px-5 pb-2.5">
         <SectionTitle titre="Profils colocataires" />
       </div>
-      <div className="px-5 pb-4 flex flex-col gap-2">
-        {profils.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Aucun profil pour l'instant.</p>}
+      <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+        {profils.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-4">Aucun profil pour l'instant.</p>}
         {profils.map((p) => (
           <div key={p.utilisateur_id} className="flex items-center gap-3 bg-gradient-to-br from-teal-light to-[#f0fffd] rounded-2xl p-2.5 border-2 border-teal/20">
             <span className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#00a896] flex items-center justify-center text-white flex-shrink-0">

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Home, Pencil, Trash2 } from 'lucide-react'
+import { Home, Pencil, Trash2, CheckCircle2, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { urlPhoto } from '../lib/photos'
-import type { Annonce } from '../lib/types'
+import { libellePris, type Annonce } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 
 export function MesAnnonces() {
@@ -36,12 +36,20 @@ export function MesAnnonces() {
     charger()
   }
 
+  async function basculerStatut(a: Annonce) {
+    if (!supabase) return
+    const nouveauStatut = a.statut === 'loue' ? 'dispo' : 'loue'
+    setAnnonces((prev) => prev?.map((x) => (x.id === a.id ? { ...x, statut: nouveauStatut } : x)) ?? null)
+    await supabase.from('annonces').update({ statut: nouveauStatut }).eq('id', a.id)
+    afficherToast(nouveauStatut === 'loue' ? `🔴 Marquée comme ${libellePris(a.type).toLowerCase()}e` : '🟢 Remise en disponible')
+  }
+
   return (
     <div>
-      <PageHeader titre="🏠 Mes annonces" sousTitre="Modifiez ou supprimez vos publications" retourVers="/profil" />
-      <div className="px-5 pb-6 flex flex-col gap-2.5">
+      <PageHeader titre="🏠 Mes annonces" sousTitre="✓ pour marquer loué/vendu · crayon pour modifier" retourVers="/profil" />
+      <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {annonces?.length === 0 && (
-          <div className="text-center py-11">
+          <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">🏠</div>
             <strong className="block font-heading text-navy mb-1.5">Aucune annonce publiée</strong>
             <p className="text-sm text-slate-500 mb-4">Publiez votre premier bien gratuitement</p>
@@ -60,13 +68,24 @@ export function MesAnnonces() {
                 {a.pieces} · {a.quartier}
               </div>
               <div className="text-[11px] text-slate-500">
-                📍 {a.ville} · {a.statut === 'loue' ? <span className="text-red-600 font-semibold">Loué</span> : <span className="text-teal font-semibold">Disponible</span>}
+                📍 {a.ville} · {a.statut === 'loue' ? <span className="text-red-600 font-semibold">{libellePris(a.type)}</span> : <span className="text-teal font-semibold">Disponible</span>}
               </div>
               <div className="font-heading font-extrabold text-sm text-brand-blue">
                 {a.prix.toLocaleString('fr-FR')} FCFA{a.unite}
               </div>
             </div>
             <div className="flex gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => basculerStatut(a)}
+                title={a.statut === 'loue' ? 'Remettre en disponible' : `Marquer comme ${libellePris(a.type).toLowerCase()}e`}
+                className={
+                  a.statut === 'loue'
+                    ? 'bg-teal-light border-2 border-teal text-teal rounded-lg p-2'
+                    : 'bg-amber-50 border-2 border-amber-200 text-amber-700 rounded-lg p-2'
+                }
+              >
+                {a.statut === 'loue' ? <RotateCcw size={14} /> : <CheckCircle2 size={14} />}
+              </button>
               <Link to={`/profil/mes-annonces/${a.id}`} className="bg-blue-light border-2 border-brand-blue text-brand-blue rounded-lg p-2">
                 <Pencil size={14} />
               </Link>

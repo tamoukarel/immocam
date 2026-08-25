@@ -18,6 +18,7 @@ import { Favoris } from './pages/Favoris'
 import { Messages } from './pages/Messages'
 import { Alertes } from './pages/Alertes'
 import { Parametres } from './pages/Parametres'
+import { Signalements } from './pages/Signalements'
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
                 <Route path="messages" element={<Messages />} />
                 <Route path="alertes" element={<Alertes />} />
                 <Route path="parametres" element={<Parametres />} />
+                <Route path="signalements" element={<Signalements />} />
               </Route>
             </Route>
           </Routes>

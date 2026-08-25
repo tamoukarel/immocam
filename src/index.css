@@ -39,11 +39,25 @@ h1, h2, h3, h4, .font-heading {
 }
 .fi,
 .fs {
-  @apply w-full border-2 border-slate-100 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-brand-blue;
+  @apply w-full border-2 border-slate-100 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 bg-white outline-none transition-colors focus:border-brand-blue;
 }
 .btn-prev {
-  @apply flex-1 bg-bg text-slate-600 border-2 border-slate-100 rounded-xl py-3 text-sm font-bold font-heading;
+  @apply flex-1 bg-bg text-slate-600 border-2 border-slate-100 rounded-xl py-3 text-sm font-bold font-heading transition-transform active:scale-95;
 }
 .btn-next {
-  @apply flex-[2] bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-xl py-3 text-sm font-bold font-heading shadow;
+  @apply flex-[2] bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-xl py-3 text-sm font-bold font-heading shadow transition-transform active:scale-95;
+}
+
+@keyframes fondu-monte {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in {
+  animation: fondu-monte 0.25s ease-out both;
 }

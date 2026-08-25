@@ -21,9 +21,9 @@ export function Favoris() {
   return (
     <div>
       <PageHeader titre="❤️ Favoris sauvés" sousTitre="Les biens que vous avez aimés" retourVers="/profil" />
-      <div className="px-5 pb-6 flex flex-col gap-3">
+      <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-3">
         {annonces?.length === 0 && (
-          <div className="text-center py-11">
+          <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">❤️</div>
             <strong className="block font-heading text-navy mb-1.5">Aucun favori</strong>
             <p className="text-sm text-slate-500">Appuyez sur 🤍 sur une annonce pour la sauvegarder</p>

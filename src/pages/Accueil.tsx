@@ -10,11 +10,20 @@ const ICONES_VILLE: Record<string, string> = {
   Yaoundé: '🏛️',
   Douala: '⚓',
   Bafoussam: '🌿',
-  Garoua: '☀️',
-  Buea: '🌋',
   Bamenda: '⛰️',
+  Garoua: '☀️',
   Maroua: '🌵',
   Ngaoundéré: '🐄',
+  Bertoua: '🌳',
+  Ebolowa: '🌴',
+  Kribi: '🏖️',
+  Limbe: '🌊',
+  Buea: '🌋',
+  Kumba: '🌾',
+  Edéa: '💧',
+  Dschang: '🎓',
+  Nkongsamba: '🏔️',
+  Foumban: '🏺',
 }
 
 const MODULES = [
@@ -36,6 +45,7 @@ export function Accueil() {
       .from('annonces')
       .select('*')
       .eq('ville', ville)
+      .eq('statut', 'dispo')
       .order('created_at', { ascending: false })
       .limit(4)
       .then(({ data }) => setAnnonces((data as Annonce[]) ?? []))
@@ -81,7 +91,7 @@ export function Accueil() {
       <div className="px-5 pt-4 pb-2.5">
         <SectionTitle titre="Choisir une ville" />
       </div>
-      <div className="flex gap-2 px-5 pb-3.5 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 px-5 pb-3.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
         {VILLES.map((v) => (
           <button
             key={v}
@@ -98,7 +108,7 @@ export function Accueil() {
       <div className="px-5 pb-2.5">
         <SectionTitle titre="Nos fonctionnalités" />
       </div>
-      <div className="flex gap-2.5 px-5 pb-3.5 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2.5 px-5 pb-3.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
         {MODULES.map(({ to, icone: Icone, num, titre, pts }) => (
           <button
             key={to}
@@ -128,8 +138,8 @@ export function Accueil() {
           Voir tout <ArrowRight size={12} />
         </button>
       </div>
-      <div className="px-5 pb-4 flex flex-col gap-3">
-        {annonces.length === 0 && <p className="text-sm text-slate-400 text-center py-6">Aucune annonce à {ville} pour l'instant.</p>}
+      <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {annonces.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-6">Aucune annonce à {ville} pour l'instant.</p>}
         {annonces.map((a) => (
           <AnnonceCard key={a.id} annonce={a} />
         ))}

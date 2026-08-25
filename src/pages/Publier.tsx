@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, X, Plus } from 'lucide-react'
+import { Camera, X, Plus, Video } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
-import { televerserPhoto } from '../lib/photos'
-import { VILLES, TYPES_PIECES, type TypeAnnonce } from '../lib/types'
+import { televerserPhoto, televerserVideo, MAX_VIDEO_OCTETS } from '../lib/photos'
+import { formaterTelephone } from '../lib/whatsapp'
+import { VILLES, TYPES_PIECES, DISTANCES_ROUTE, type TypeAnnonce, type Niveau } from '../lib/types'
 
 const MAX_PHOTOS = 5
-const ETAPES = ['Le bien', 'Les photos', 'Contact']
+const ETAPES = ['Le bien', 'Détails', 'Photos', 'Contact']
 
 export function Publier() {
   const navigate = useNavigate()
@@ -21,10 +22,24 @@ export function Publier() {
   const [quartier, setQuartier] = useState('')
   const [pieces, setPieces] = useState<string>(TYPES_PIECES[0])
   const [prix, setPrix] = useState('')
+  const [avance, setAvance] = useState('')
+  const [caution, setCaution] = useState('')
+  const [niveau, setNiveau] = useState<Niveau | ''>('')
+  const [distanceRoute, setDistanceRoute] = useState('')
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState<File[]>([])
+  const [video, setVideo] = useState<File | null>(null)
   const [whatsapp, setWhatsapp] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const [etapeEnvoi, setEtapeEnvoi] = useState('')
+
+  // Pré-rempli avec le numéro du compte (celui vérifié par OTP) pour éviter
+  // de le retaper à chaque annonce — l'utilisateur reste libre de le changer
+  // si son WhatsApp diffère de son numéro de connexion.
+  useEffect(() => {
+    if (profil?.telephone && !whatsapp) setWhatsapp(formaterTelephone(profil.telephone))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profil])
 
   function ajouterPhotos(fichiers: FileList | null) {
     if (!fichiers) return
@@ -34,6 +49,16 @@ export function Publier() {
       return
     }
     setPhotos((prev) => [...prev, ...Array.from(fichiers).slice(0, restant)])
+  }
+
+  function choisirVideo(fichiers: FileList | null) {
+    const fichier = fichiers?.[0]
+    if (!fichier) return
+    if (fichier.size > MAX_VIDEO_OCTETS) {
+      afficherToast('⚠️ Vidéo trop lourde (max 10 Mo)')
+      return
+    }
+    setVideo(fichier)
   }
 
   function allerA(n: number) {
@@ -53,7 +78,15 @@ export function Publier() {
     }
     setEnvoi(true)
     try {
-      const cheminsPhotos = await Promise.all(photos.map((f) => televerserPhoto(f, profil.id)))
+      if (photos.length > 0) setEtapeEnvoi(`Envoi des photos (0/${photos.length})…`)
+      const cheminsPhotos: string[] = []
+      for (const f of photos) {
+        cheminsPhotos.push(await televerserPhoto(f, profil.id))
+        setEtapeEnvoi(`Envoi des photos (${cheminsPhotos.length}/${photos.length})…`)
+      }
+      if (video) setEtapeEnvoi('Envoi de la vidéo… (peut prendre un moment)')
+      const cheminVideo = video ? await televerserVideo(video, profil.id) : null
+      setEtapeEnvoi('Création de l\'annonce…')
       const estCourteDuree = type === 'short'
       const { error } = await supabase.from('annonces').insert({
         proprietaire_id: profil.id,
@@ -66,7 +99,12 @@ export function Publier() {
         description: description.trim(),
         whatsapp: chiffresWa,
         photos: cheminsPhotos,
+        video: cheminVideo,
         est_courte_duree: estCourteDuree,
+        avance_mois: type !== 'vente' && avance ? parseInt(avance, 10) : null,
+        caution_mois: type !== 'vente' && caution ? parseInt(caution, 10) : null,
+        niveau: niveau || null,
+        distance_route: distanceRoute || null,
       })
       if (error) throw error
       afficherToast('🚀 Annonce publiée !')
@@ -75,28 +113,30 @@ export function Publier() {
       afficherToast("⚠️ Échec de la publication, réessaie")
     } finally {
       setEnvoi(false)
+      setEtapeEnvoi('')
     }
   }
 
   return (
-    <div>
+    <div className="md:max-w-lg md:mx-auto">
       <div className="px-5 pt-5 pb-3">
         <h2 className="font-heading font-extrabold text-lg text-navy">➕ Publier une annonce</h2>
-        <p className="text-xs text-slate-500">Gratuit · Sans intermédiaire · 3 étapes</p>
+        <p className="text-xs text-slate-500">Gratuit · Sans intermédiaire · 4 étapes rapides</p>
       </div>
 
-      <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm">
+      <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between mb-3.5">
           <span className="font-heading font-extrabold text-[13px] text-navy">
-            Étape {etape + 1} / 3 — {ETAPES[etape]}
+            Étape {etape + 1} / {ETAPES.length} — {ETAPES[etape]}
           </span>
           <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={`w-6 h-[5px] rounded-sm ${i <= etape ? 'bg-brand-blue' : 'bg-slate-100'}`} />
+            {ETAPES.map((_, i) => (
+              <span key={i} className={`w-6 h-[5px] rounded-sm transition-colors duration-300 ${i <= etape ? 'bg-brand-blue' : 'bg-slate-100'}`} />
             ))}
           </div>
         </div>
 
+        <div key={etape} className="fade-in">
         {etape === 0 && (
           <div className="flex flex-col gap-3">
             <Champ label="Type d'annonce">
@@ -130,6 +170,41 @@ export function Publier() {
                 <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" placeholder="Ex: 80000" className="fi" />
               </Champ>
             </div>
+            <button onClick={() => allerA(1)} className="btn-next">
+              Suivant → Détails
+            </button>
+          </div>
+        )}
+
+        {etape === 1 && (
+          <div className="flex flex-col gap-3">
+            {type !== 'vente' && (
+              <div className="flex gap-2.5">
+                <Champ label="Avance demandée (mois)">
+                  <input value={avance} onChange={(e) => setAvance(e.target.value)} type="number" min="0" placeholder="Ex: 6" className="fi" />
+                </Champ>
+                <Champ label="Caution (mois)">
+                  <input value={caution} onChange={(e) => setCaution(e.target.value)} type="number" min="0" placeholder="Ex: 1" className="fi" />
+                </Champ>
+              </div>
+            )}
+            <div className="flex gap-2.5">
+              <Champ label="Niveau (optionnel)">
+                <select value={niveau} onChange={(e) => setNiveau(e.target.value as typeof niveau)} className="fs">
+                  <option value="">Peu importe</option>
+                  <option value="rdc">Rez-de-chaussée</option>
+                  <option value="etage">Étage</option>
+                </select>
+              </Champ>
+              <Champ label="Distance du goudron">
+                <select value={distanceRoute} onChange={(e) => setDistanceRoute(e.target.value)} className="fs">
+                  <option value="">Non précisé</option>
+                  {DISTANCES_ROUTE.map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
+              </Champ>
+            </div>
             <Champ label="Description">
               <textarea
                 value={description}
@@ -138,13 +213,18 @@ export function Publier() {
                 className="fi resize-none h-[70px]"
               />
             </Champ>
-            <button onClick={() => allerA(1)} className="btn-next">
-              Suivant → Photos
-            </button>
+            <div className="flex gap-2.5">
+              <button onClick={() => allerA(0)} className="btn-prev">
+                ← Retour
+              </button>
+              <button onClick={() => allerA(2)} className="btn-next">
+                Suivant → Photos
+              </button>
+            </div>
           </div>
         )}
 
-        {etape === 1 && (
+        {etape === 2 && (
           <div className="flex flex-col gap-3">
             <div>
               <label className="fl">
@@ -184,18 +264,41 @@ export function Publier() {
                 ✅ Les annonces avec photos reçoivent 3× plus de contacts !
               </div>
             </div>
+            <div>
+              <label className="fl">
+                Vidéo <span className="text-teal">(optionnel, max. 10 Mo)</span>
+              </label>
+              {video ? (
+                <div className="relative">
+                  <video src={URL.createObjectURL(video)} controls className="w-full h-[140px] rounded-xl bg-black object-contain" />
+                  <button
+                    onClick={() => setVideo(null)}
+                    className="absolute -top-1.5 -right-1.5 bg-navy/80 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ) : (
+                <label className="border-2 border-dashed border-brand-blue rounded-2xl bg-blue-light p-5 text-center block cursor-pointer">
+                  <input type="file" accept="video/*" hidden onChange={(e) => choisirVideo(e.target.files)} />
+                  <Video size={28} className="mx-auto text-brand-blue mb-1.5" />
+                  <div className="font-heading font-bold text-sm text-navy">Ajouter une vidéo de visite</div>
+                  <div className="text-[11px] text-slate-500">Une courte vidéo inspire plus confiance que des photos seules</div>
+                </label>
+              )}
+            </div>
             <div className="flex gap-2.5">
-              <button onClick={() => allerA(0)} className="btn-prev">
+              <button onClick={() => allerA(1)} className="btn-prev">
                 ← Retour
               </button>
-              <button onClick={() => allerA(2)} className="btn-next">
+              <button onClick={() => allerA(3)} className="btn-next">
                 Suivant → Contact
               </button>
             </div>
           </div>
         )}
 
-        {etape === 2 && (
+        {etape === 3 && (
           <div className="flex flex-col gap-3">
             <Champ label="Votre WhatsApp">
               <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} type="tel" placeholder="+237 6XX XXX XXX" className="fi" />
@@ -205,20 +308,36 @@ export function Publier() {
               🏛️ <b>{ville}</b> · {quartier || '…'}
               <br />🏠 <b>{pieces}</b> · {type === 'vente' ? 'Vente' : type === 'short' ? 'Location courte durée' : 'Location'}
               <br />💰 <b>{prix ? Number(prix).toLocaleString('fr-FR') : '0'} FCFA</b>
+              {type !== 'vente' && (avance || caution) && (
+                <>
+                  <br />📋 <b>
+                    {[avance && `${avance} mois d'avance`, caution && `${caution} mois de caution`].filter(Boolean).join(' + ')}
+                  </b>
+                </>
+              )}
               <br />📸 <b>
                 {photos.length} photo{photos.length > 1 ? 's' : ''}
+                {video ? ' + 1 vidéo' : ''}
               </b>
             </div>
             <div className="flex gap-2.5">
-              <button onClick={() => allerA(1)} className="btn-prev">
+              <button onClick={() => allerA(2)} className="btn-prev">
                 ← Retour
               </button>
-              <button onClick={publier} disabled={envoi} className="btn-next disabled:opacity-60">
-                {envoi ? 'Publication…' : '🚀 Publier'}
+              <button onClick={publier} disabled={envoi} className="btn-next disabled:opacity-60 active:scale-95 transition-transform">
+                {envoi ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    {etapeEnvoi || 'Publication…'}
+                  </span>
+                ) : (
+                  '🚀 Publier'
+                )}
               </button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

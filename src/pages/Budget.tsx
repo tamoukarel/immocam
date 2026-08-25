@@ -20,6 +20,7 @@ export function Budget() {
       .from('annonces')
       .select('*')
       .eq('type', 'location')
+      .eq('statut', 'dispo')
       .then(({ data }) => setLocations((data as Annonce[]) ?? []))
   }, [])
 
@@ -32,7 +33,7 @@ export function Budget() {
         <p className="text-xs text-slate-500">Filtre selon ton enveloppe mensuelle</p>
       </div>
 
-      <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-3.5">
+      <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-3.5 md:max-w-lg">
         <div className="font-heading font-extrabold text-sm text-navy mb-2.5">Ton budget maximum (FCFA/mois)</div>
         <div className="flex justify-between text-[11px] text-slate-400 font-medium mb-1.5">
           <span>30 000</span>
@@ -75,8 +76,8 @@ export function Budget() {
           Résultats filtrés
         </div>
       </div>
-      <div className="px-5 pb-6 flex flex-col gap-3">
-        {resultats.length === 0 && <p className="text-center text-sm text-slate-400 py-6">Aucun bien pour ce budget ✂️</p>}
+      <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {resultats.length === 0 && <p className="col-span-full text-center text-sm text-slate-400 py-6">Aucun bien pour ce budget ✂️</p>}
         {resultats.map((a) => (
           <AnnonceCard key={a.id} annonce={a} />
         ))}

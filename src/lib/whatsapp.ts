@@ -5,6 +5,16 @@ export function lienWhatsapp(numero: string, texte: string): string {
   return `https://wa.me/${numero}?text=${encodeURIComponent(texte)}`
 }
 
+// "237697002986" -> "+237 697 002 986" (groupes de 3, comme le placeholder
+// des champs WhatsApp). Repli sur la valeur brute si le format est inattendu.
+export function formaterTelephone(brut: string): string {
+  const chiffres = brut.replace(/\D/g, '')
+  const indicatif = chiffres.startsWith('237') ? chiffres.slice(0, 3) : null
+  const reste = indicatif ? chiffres.slice(3) : chiffres
+  if (!indicatif || reste.length !== 9) return brut
+  return `+${indicatif} ${reste.slice(0, 3)} ${reste.slice(3, 6)} ${reste.slice(6)}`
+}
+
 // Ouvre WhatsApp (la conversation se passe entièrement là-bas) et, si
 // l'utilisateur est connecté, journalise le contact pour que le
 // propriétaire le retrouve dans "Messages reçus".

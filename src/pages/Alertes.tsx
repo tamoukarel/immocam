@@ -60,10 +60,10 @@ export function Alertes() {
 
   return (
     <div>
-      <PageHeader titre="🔔 Alertes de prix" sousTitre="Soyez notifié dès qu'un bien correspond" retourVers="/profil" />
+      <PageHeader titre="🔖 Recherches sauvegardées" sousTitre="Reviens ici pour voir combien de biens correspondent — pas de notification push pour l'instant" retourVers="/profil" />
       <div className="px-5 pb-6">
-        <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-3.5">
-          <div className="font-heading font-extrabold text-sm text-navy mb-3">➕ Créer une alerte</div>
+        <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-3.5 md:max-w-lg">
+          <div className="font-heading font-extrabold text-sm text-navy mb-3">➕ Enregistrer une recherche</div>
           <div className="flex flex-col gap-3">
             <div>
               <label className="fl">Ville</label>
@@ -87,13 +87,13 @@ export function Alertes() {
               </div>
             </div>
             <button onClick={creer} className="btn-next">
-              🔔 Créer l'alerte
+              🔖 Sauvegarder cette recherche
             </button>
           </div>
         </div>
 
-        {alertes.length === 0 && <p className="text-center text-sm text-slate-400 italic py-4">Aucune alerte créée</p>}
-        <div className="flex flex-col gap-2">
+        {alertes.length === 0 && <p className="text-center text-sm text-slate-400 italic py-4">Aucune recherche sauvegardée</p>}
+        <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2">
           {alertes.map((a) => (
             <div key={a.id} className="bg-white rounded-2xl border-2 border-slate-100 p-3 flex items-center justify-between shadow-sm">
               <div>
