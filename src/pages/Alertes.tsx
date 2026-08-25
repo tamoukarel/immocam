@@ -74,11 +74,11 @@ export function Alertes() {
               </select>
             </div>
             <div className="flex gap-2.5">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <label className="fl">Budget max</label>
                 <input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" placeholder="Ex: 100000" className="fi" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <label className="fl">Type</label>
                 <select value={type} onChange={(e) => setType(e.target.value as TypeAnnonce)} className="fs">
                   <option value="location">Location</option>

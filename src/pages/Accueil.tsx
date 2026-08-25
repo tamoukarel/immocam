@@ -76,11 +76,11 @@ export function Accueil() {
               onChange={(e) => setRecherche(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && chercher()}
               placeholder="Quartier, ville…"
-              className="flex-1 border-2 border-slate-100 rounded-lg px-3 py-2 text-sm bg-bg outline-none focus:border-brand-blue"
+              className="flex-1 min-w-0 border-2 border-slate-100 rounded-lg px-3 py-2 text-sm bg-bg outline-none focus:border-brand-blue"
             />
             <button
               onClick={chercher}
-              className="bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-lg px-4 text-xs font-bold font-heading flex items-center gap-1"
+              className="flex-shrink-0 whitespace-nowrap bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-lg px-4 text-xs font-bold font-heading flex items-center gap-1"
             >
               <Search size={14} /> Chercher
             </button>

@@ -345,7 +345,7 @@ export function Publier() {
 
 function Champ({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-w-0">
       <label className="fl">{label}</label>
       {children}
     </div>

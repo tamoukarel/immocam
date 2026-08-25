@@ -69,7 +69,7 @@ export function Parametres() {
           <div className="text-[10px] font-bold text-brand-blue uppercase tracking-wide font-heading mb-1">Nom affiché</div>
           <p className="text-[11px] text-slate-400 mb-2.5">Visible par les autres (annonces, coloc, messages).</p>
           <div className="flex gap-2">
-            <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ton nom" className="fi" />
+            <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ton nom" className="fi min-w-0" />
             <button onClick={enregistrerNom} disabled={enregistrement} className="bg-brand-blue text-white rounded-xl px-4 text-sm font-bold font-heading disabled:opacity-60 flex-shrink-0">
               {enregistrement ? '…' : 'Enregistrer'}
             </button>

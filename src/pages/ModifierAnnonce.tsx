@@ -159,7 +159,7 @@ export function ModifierAnnonce() {
           </select>
         </div>
         <div className="flex gap-2.5">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Ville</label>
             <select value={ville} onChange={(e) => setVille(e.target.value)} className="fs">
               {VILLES.map((v) => (
@@ -167,13 +167,13 @@ export function ModifierAnnonce() {
               ))}
             </select>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Quartier</label>
             <input value={quartier} onChange={(e) => setQuartier(e.target.value)} className="fi" />
           </div>
         </div>
         <div className="flex gap-2.5">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Pièces</label>
             <select value={pieces} onChange={(e) => setPieces(e.target.value)} className="fs">
               {TYPES_PIECES.map((p) => (
@@ -181,25 +181,25 @@ export function ModifierAnnonce() {
               ))}
             </select>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Prix (FCFA)</label>
             <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" className="fi" />
           </div>
         </div>
         {type !== 'vente' && (
           <div className="flex gap-2.5">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="fl">Avance demandée (mois)</label>
               <input value={avance} onChange={(e) => setAvance(e.target.value)} type="number" min="0" placeholder="Ex: 6" className="fi" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="fl">Caution (mois)</label>
               <input value={caution} onChange={(e) => setCaution(e.target.value)} type="number" min="0" placeholder="Ex: 1" className="fi" />
             </div>
           </div>
         )}
         <div className="flex gap-2.5">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Niveau</label>
             <select value={niveau} onChange={(e) => setNiveau(e.target.value as typeof niveau)} className="fs">
               <option value="">Peu importe</option>
@@ -207,7 +207,7 @@ export function ModifierAnnonce() {
               <option value="etage">Étage</option>
             </select>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="fl">Distance du goudron</label>
             <select value={distanceRoute} onChange={(e) => setDistanceRoute(e.target.value)} className="fs">
               <option value="">Non précisé</option>
