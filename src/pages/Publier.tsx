@@ -6,15 +6,17 @@ import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { televerserPhoto, televerserVideo, MAX_VIDEO_OCTETS } from '../lib/photos'
 import { formaterTelephone } from '../lib/whatsapp'
-import { VILLES, TYPES_PIECES, DISTANCES_ROUTE, type TypeAnnonce, type Niveau } from '../lib/types'
+import { VILLES, TYPES_PIECES, DISTANCES_ROUTE, libellePiece, libelleDistance, type TypeAnnonce, type Niveau } from '../lib/types'
+import { useLang } from '../lib/LangContext'
 
 const MAX_PHOTOS = 5
-const ETAPES = ['Le bien', 'Détails', 'Photos', 'Contact']
+const ETAPES = ['publier.etape.bien', 'publier.etape.details', 'publier.etape.photos', 'publier.etape.contact']
 
 export function Publier() {
   const navigate = useNavigate()
   const { profil } = useAuth()
   const afficherToast = useToast()
+  const { lang, t } = useLang()
 
   const [etape, setEtape] = useState(0)
   const [type, setType] = useState<TypeAnnonce | 'short'>('location')
@@ -45,7 +47,7 @@ export function Publier() {
     if (!fichiers) return
     const restant = MAX_PHOTOS - photos.length
     if (restant <= 0) {
-      afficherToast(`Maximum ${MAX_PHOTOS} photos`)
+      afficherToast(t('publier.erreurMaxPhotos', { n: MAX_PHOTOS }))
       return
     }
     setPhotos((prev) => [...prev, ...Array.from(fichiers).slice(0, restant)])
@@ -55,7 +57,7 @@ export function Publier() {
     const fichier = fichiers?.[0]
     if (!fichier) return
     if (fichier.size > MAX_VIDEO_OCTETS) {
-      afficherToast('⚠️ Vidéo trop lourde (max 10 Mo)')
+      afficherToast(t('publier.erreurVideoLourde'))
       return
     }
     setVideo(fichier)
@@ -63,7 +65,7 @@ export function Publier() {
 
   function allerA(n: number) {
     if (n === 1 && (!quartier.trim() || !prix || Number(prix) <= 0)) {
-      afficherToast('⚠️ Renseigne le quartier et un prix valide')
+      afficherToast(t('publier.erreurQuartierPrix'))
       return
     }
     setEtape(n)
@@ -73,20 +75,20 @@ export function Publier() {
     if (!supabase || !profil) return
     const chiffresWa = whatsapp.replace(/\D/g, '')
     if (chiffresWa.length < 9) {
-      afficherToast('⚠️ Numéro WhatsApp invalide')
+      afficherToast(t('publier.erreurWhatsapp'))
       return
     }
     setEnvoi(true)
     try {
-      if (photos.length > 0) setEtapeEnvoi(`Envoi des photos (0/${photos.length})…`)
+      if (photos.length > 0) setEtapeEnvoi(t('publier.envoiPhotos', { n: 0, total: photos.length }))
       const cheminsPhotos: string[] = []
       for (const f of photos) {
         cheminsPhotos.push(await televerserPhoto(f, profil.id))
-        setEtapeEnvoi(`Envoi des photos (${cheminsPhotos.length}/${photos.length})…`)
+        setEtapeEnvoi(t('publier.envoiPhotos', { n: cheminsPhotos.length, total: photos.length }))
       }
-      if (video) setEtapeEnvoi('Envoi de la vidéo… (peut prendre un moment)')
+      if (video) setEtapeEnvoi(t('publier.envoiVideo'))
       const cheminVideo = video ? await televerserVideo(video, profil.id) : null
-      setEtapeEnvoi('Création de l\'annonce…')
+      setEtapeEnvoi(t('publier.creationAnnonce'))
       const estCourteDuree = type === 'short'
       const { error } = await supabase.from('annonces').insert({
         proprietaire_id: profil.id,
@@ -107,10 +109,10 @@ export function Publier() {
         distance_route: distanceRoute || null,
       })
       if (error) throw error
-      afficherToast('🚀 Annonce publiée !')
+      afficherToast(t('publier.succes'))
       navigate('/profil/mes-annonces')
     } catch {
-      afficherToast("⚠️ Échec de la publication, réessaie")
+      afficherToast(t('publier.echec'))
     } finally {
       setEnvoi(false)
       setEtapeEnvoi('')
@@ -120,14 +122,14 @@ export function Publier() {
   return (
     <div className="md:max-w-lg md:mx-auto">
       <div className="px-5 pt-5 pb-3">
-        <h2 className="font-heading font-extrabold text-lg text-navy">➕ Publier une annonce</h2>
-        <p className="text-xs text-slate-500">Gratuit · Sans intermédiaire · 4 étapes rapides</p>
+        <h2 className="font-heading font-extrabold text-lg text-navy">{t('publier.titre')}</h2>
+        <p className="text-xs text-slate-500">{t('publier.sousTitre')}</p>
       </div>
 
       <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between mb-3.5">
           <span className="font-heading font-extrabold text-[13px] text-navy">
-            Étape {etape + 1} / {ETAPES.length} — {ETAPES[etape]}
+            {t('publier.etape', { n: etape + 1, total: ETAPES.length, nom: t(ETAPES[etape]) })}
           </span>
           <div className="flex gap-1">
             {ETAPES.map((_, i) => (
@@ -139,39 +141,41 @@ export function Publier() {
         <div key={etape} className="fade-in">
         {etape === 0 && (
           <div className="flex flex-col gap-3">
-            <Champ label="Type d'annonce">
+            <Champ label={t('publier.champ.type')}>
               <select value={type} onChange={(e) => setType(e.target.value as typeof type)} className="fs">
-                <option value="location">🔑 Location longue durée</option>
-                <option value="vente">💰 Vente</option>
-                <option value="short">🌴 Location courte durée</option>
+                <option value="location">{t('publier.type.location')}</option>
+                <option value="vente">{t('publier.type.vente')}</option>
+                <option value="short">{t('publier.type.courte')}</option>
               </select>
             </Champ>
             <div className="flex gap-2.5">
-              <Champ label="Ville">
+              <Champ label={t('publier.champ.ville')}>
                 <select value={ville} onChange={(e) => setVille(e.target.value)} className="fs">
                   {VILLES.map((v) => (
                     <option key={v}>{v}</option>
                   ))}
                 </select>
               </Champ>
-              <Champ label="Quartier">
-                <input value={quartier} onChange={(e) => setQuartier(e.target.value)} placeholder="Ex: Bastos" className="fi" />
+              <Champ label={t('publier.champ.quartier')}>
+                <input value={quartier} onChange={(e) => setQuartier(e.target.value)} placeholder={t('publier.quartierPlaceholder')} className="fi" />
               </Champ>
             </div>
             <div className="flex gap-2.5">
-              <Champ label="Nb pièces">
+              <Champ label={t('publier.champ.pieces')}>
                 <select value={pieces} onChange={(e) => setPieces(e.target.value)} className="fs">
                   {TYPES_PIECES.map((p) => (
-                    <option key={p}>{p}</option>
+                    <option key={p} value={p}>
+                      {libellePiece(p, lang)}
+                    </option>
                   ))}
                 </select>
               </Champ>
-              <Champ label="Prix (FCFA)">
-                <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" placeholder="Ex: 80000" className="fi" />
+              <Champ label={t('publier.champ.prix')}>
+                <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" placeholder={t('publier.prixPlaceholder')} className="fi" />
               </Champ>
             </div>
             <button onClick={() => allerA(1)} className="btn-next">
-              Suivant → Détails
+              {t('publier.suivantDetails')}
             </button>
           </div>
         )}
@@ -180,45 +184,47 @@ export function Publier() {
           <div className="flex flex-col gap-3">
             {type !== 'vente' && (
               <div className="flex gap-2.5">
-                <Champ label="Avance demandée (mois)">
+                <Champ label={t('publier.champ.avance')}>
                   <input value={avance} onChange={(e) => setAvance(e.target.value)} type="number" min="0" placeholder="Ex: 6" className="fi" />
                 </Champ>
-                <Champ label="Caution (mois)">
+                <Champ label={t('publier.champ.caution')}>
                   <input value={caution} onChange={(e) => setCaution(e.target.value)} type="number" min="0" placeholder="Ex: 1" className="fi" />
                 </Champ>
               </div>
             )}
             <div className="flex gap-2.5">
-              <Champ label="Niveau (optionnel)">
+              <Champ label={t('publier.champ.niveau')}>
                 <select value={niveau} onChange={(e) => setNiveau(e.target.value as typeof niveau)} className="fs">
-                  <option value="">Peu importe</option>
-                  <option value="rdc">Rez-de-chaussée</option>
-                  <option value="etage">Étage</option>
+                  <option value="">{t('publier.niveau.peuImporte')}</option>
+                  <option value="rdc">{t('publier.niveau.rdc')}</option>
+                  <option value="etage">{t('publier.niveau.etage')}</option>
                 </select>
               </Champ>
-              <Champ label="Distance du goudron">
+              <Champ label={t('publier.champ.distanceRoute')}>
                 <select value={distanceRoute} onChange={(e) => setDistanceRoute(e.target.value)} className="fs">
-                  <option value="">Non précisé</option>
+                  <option value="">{t('publier.distance.nonPrecise')}</option>
                   {DISTANCES_ROUTE.map((d) => (
-                    <option key={d}>{d}</option>
+                    <option key={d} value={d}>
+                      {libelleDistance(d, lang)}
+                    </option>
                   ))}
                 </select>
               </Champ>
             </div>
-            <Champ label="Description">
+            <Champ label={t('publier.champ.description')}>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Équipements, état, avantages…"
+                placeholder={t('publier.descriptionPlaceholder')}
                 className="fi resize-none h-[70px]"
               />
             </Champ>
             <div className="flex gap-2.5">
               <button onClick={() => allerA(0)} className="btn-prev">
-                ← Retour
+                {t('publier.retour')}
               </button>
               <button onClick={() => allerA(2)} className="btn-next">
-                Suivant → Photos
+                {t('publier.suivantPhotos')}
               </button>
             </div>
           </div>
@@ -228,13 +234,13 @@ export function Publier() {
           <div className="flex flex-col gap-3">
             <div>
               <label className="fl">
-                Photos du bien <span className="text-teal">(max. {MAX_PHOTOS})</span>
+                {t('publier.champ.photos')} <span className="text-teal">{t('publier.max', { n: MAX_PHOTOS })}</span>
               </label>
               <label className="border-2 border-dashed border-brand-blue rounded-2xl bg-blue-light p-6 text-center block cursor-pointer">
                 <input type="file" accept="image/*" multiple hidden onChange={(e) => ajouterPhotos(e.target.files)} />
                 <Camera size={34} className="mx-auto text-brand-blue mb-2" />
-                <div className="font-heading font-bold text-sm text-navy">Ajouter des photos</div>
-                <div className="text-[11px] text-slate-500">Clique pour sélectionner</div>
+                <div className="font-heading font-bold text-sm text-navy">{t('publier.ajouterPhotos')}</div>
+                <div className="text-[11px] text-slate-500">{t('publier.cliquePourSelectionner')}</div>
               </label>
               {photos.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
@@ -258,15 +264,15 @@ export function Publier() {
                 </div>
               )}
               <div className="text-center mt-2 text-[11px] font-semibold text-slate-500">
-                📸 {photos.length} / {MAX_PHOTOS} photos
+                {t('publier.comptePhotos', { n: photos.length, total: MAX_PHOTOS })}
               </div>
               <div className="bg-teal-light border border-teal/25 rounded-xl px-3 py-2.5 text-[11px] text-teal mt-2 flex gap-1.5 font-medium">
-                ✅ Les annonces avec photos reçoivent 3× plus de contacts !
+                ✅ {t('publier.astucePhotos')}
               </div>
             </div>
             <div>
               <label className="fl">
-                Vidéo <span className="text-teal">(optionnel, max. 10 Mo)</span>
+                {t('publier.champ.video')} <span className="text-teal">{t('publier.videoOptionnel')}</span>
               </label>
               {video ? (
                 <div className="relative">
@@ -282,17 +288,17 @@ export function Publier() {
                 <label className="border-2 border-dashed border-brand-blue rounded-2xl bg-blue-light p-5 text-center block cursor-pointer">
                   <input type="file" accept="video/*" hidden onChange={(e) => choisirVideo(e.target.files)} />
                   <Video size={28} className="mx-auto text-brand-blue mb-1.5" />
-                  <div className="font-heading font-bold text-sm text-navy">Ajouter une vidéo de visite</div>
-                  <div className="text-[11px] text-slate-500">Une courte vidéo inspire plus confiance que des photos seules</div>
+                  <div className="font-heading font-bold text-sm text-navy">{t('publier.ajouterVideo')}</div>
+                  <div className="text-[11px] text-slate-500">{t('publier.astuceVideo')}</div>
                 </label>
               )}
             </div>
             <div className="flex gap-2.5">
               <button onClick={() => allerA(1)} className="btn-prev">
-                ← Retour
+                {t('publier.retour')}
               </button>
               <button onClick={() => allerA(3)} className="btn-next">
-                Suivant → Contact
+                {t('publier.suivantContact')}
               </button>
             </div>
           </div>
@@ -300,38 +306,39 @@ export function Publier() {
 
         {etape === 3 && (
           <div className="flex flex-col gap-3">
-            <Champ label="Votre WhatsApp">
+            <Champ label={t('publier.champ.whatsapp')}>
               <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} type="tel" placeholder="+237 6XX XXX XXX" className="fi" />
             </Champ>
             <div className="bg-blue-light rounded-xl p-3.5 border border-brand-blue/20 text-xs text-slate-600 leading-loose">
-              <div className="font-heading font-bold text-navy text-[11px] mb-1">📋 Récapitulatif</div>
+              <div className="font-heading font-bold text-navy text-[11px] mb-1">{t('publier.recap.titre')}</div>
               🏛️ <b>{ville}</b> · {quartier || '…'}
-              <br />🏠 <b>{pieces}</b> · {type === 'vente' ? 'Vente' : type === 'short' ? 'Location courte durée' : 'Location'}
+              <br />🏠 <b>{libellePiece(pieces, lang)}</b> ·{' '}
+              {type === 'vente' ? t('publier.type.vente') : type === 'short' ? t('publier.type.courte') : t('publier.type.location')}
               <br />💰 <b>{prix ? Number(prix).toLocaleString('fr-FR') : '0'} FCFA</b>
               {type !== 'vente' && (avance || caution) && (
                 <>
                   <br />📋 <b>
-                    {[avance && `${avance} mois d'avance`, caution && `${caution} mois de caution`].filter(Boolean).join(' + ')}
+                    {[avance && t('detail.moisAvance', { n: avance }), caution && t('detail.moisCaution', { n: caution })].filter(Boolean).join(' + ')}
                   </b>
                 </>
               )}
               <br />📸 <b>
-                {photos.length} photo{photos.length > 1 ? 's' : ''}
-                {video ? ' + 1 vidéo' : ''}
+                {photos.length} {t('publier.photo', { s: photos.length > 1 ? 's' : '' })}
+                {video ? ` ${t('publier.plusVideo')}` : ''}
               </b>
             </div>
             <div className="flex gap-2.5">
               <button onClick={() => allerA(2)} className="btn-prev">
-                ← Retour
+                {t('publier.retour')}
               </button>
               <button onClick={publier} disabled={envoi} className="btn-next disabled:opacity-60 active:scale-95 transition-transform">
                 {envoi ? (
                   <span className="flex items-center justify-center gap-1.5">
                     <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    {etapeEnvoi || 'Publication…'}
+                    {etapeEnvoi || t('publier.publication')}
                   </span>
                 ) : (
-                  '🚀 Publier'
+                  t('publier.publier')
                 )}
               </button>
             </div>

@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
-import type { Annonce } from './types'
+import { libellePiece, type Annonce } from './types'
+import { traduire, type Lang } from './i18n'
 
 export function lienWhatsapp(numero: string, texte: string): string {
   return `https://wa.me/${numero}?text=${encodeURIComponent(texte)}`
@@ -18,7 +19,7 @@ export function formaterTelephone(brut: string): string {
 // Ouvre WhatsApp (la conversation se passe entièrement là-bas) et, si
 // l'utilisateur est connecté, journalise le contact pour que le
 // propriétaire le retrouve dans "Messages reçus".
-export async function contacterProprietaire(annonce: Annonce, utilisateurId: string | null) {
+export async function contacterProprietaire(annonce: Annonce, utilisateurId: string | null, lang: Lang) {
   if (supabase && utilisateurId && utilisateurId !== annonce.proprietaire_id) {
     void supabase.from('demandes_contact').insert({
       annonce_id: annonce.id,
@@ -26,7 +27,7 @@ export async function contacterProprietaire(annonce: Annonce, utilisateurId: str
       expediteur_id: utilisateurId,
     })
   }
-  const texte = `Bonjour, je suis intéressé(e) par : "${annonce.pieces} ${annonce.quartier}" sur ImmoCam 🏠🇨🇲`
+  const texte = traduire(lang, 'whatsapp.interesse', { annonce: `${libellePiece(annonce.pieces, lang)} ${annonce.quartier}` })
   window.open(lienWhatsapp(annonce.whatsapp, texte), '_blank')
 }
 

@@ -1,15 +1,17 @@
+import { traduire, type Lang } from './i18n'
+
 export type TypeAnnonce = 'location' | 'vente'
 export type StatutAnnonce = 'dispo' | 'loue'
 export type Niveau = 'rdc' | 'etage'
 
-export function libelleNiveau(niveau: Niveau): string {
-  return niveau === 'rdc' ? 'Rez-de-chaussée' : 'Étage'
+export function libelleNiveau(niveau: Niveau, lang: Lang): string {
+  return traduire(lang, niveau === 'rdc' ? 'statut.rdc' : 'statut.etage')
 }
 
 // Le statut 'loue' sert aussi bien aux locations qu'aux ventes (un seul
 // booléen "pris/dispo" en base) — seul le libellé change selon le type.
-export function libellePris(type: TypeAnnonce): string {
-  return type === 'vente' ? 'Vendu' : 'Loué'
+export function libellePris(type: TypeAnnonce, lang: Lang): string {
+  return traduire(lang, type === 'vente' ? 'statut.vendu' : 'statut.loue')
 }
 
 export interface Annonce {
@@ -100,3 +102,40 @@ export const TYPES_PIECES = [
   'Terrain',
   'Salle de fêtes',
 ] as const
+
+// La valeur stockée en base (et utilisée pour filtrer) reste toujours ce
+// libellé français canonique — seul l'affichage est traduit selon la langue.
+const CLES_PIECES: Record<string, string> = {
+  'Chambre simple': 'piece.chambreSimple',
+  'Chambre moderne': 'piece.chambreModerne',
+  'Chambre salon': 'piece.chambreSalon',
+  'Chambre meublée': 'piece.chambreMeublee',
+  'Studio simple': 'piece.studioSimple',
+  'Studio moderne': 'piece.studioModerne',
+  'Studio meublé': 'piece.studioMeuble',
+  'Appartement simple': 'piece.appartementSimple',
+  'Appartement moderne': 'piece.appartementModerne',
+  'Appartement meublé': 'piece.appartementMeuble',
+  Duplex: 'piece.duplex',
+  Villa: 'piece.villa',
+  Terrain: 'piece.terrain',
+  'Salle de fêtes': 'piece.salleDeFetes',
+}
+
+const CLES_DISTANCE: Record<string, string> = {
+  'Sur le goudron': 'distance.surLeGoudron',
+  '< 100m': 'distance.moins100',
+  '< 200m': 'distance.moins200',
+  '< 500m': 'distance.moins500',
+  '+ 500m': 'distance.plus500',
+}
+
+export function libellePiece(piece: string, lang: Lang): string {
+  const cle = CLES_PIECES[piece]
+  return cle ? traduire(lang, cle) : piece
+}
+
+export function libelleDistance(distance: string, lang: Lang): string {
+  const cle = CLES_DISTANCE[distance]
+  return cle ? traduire(lang, cle) : distance
+}

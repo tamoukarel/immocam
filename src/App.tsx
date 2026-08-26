@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './lib/AuthContext'
 import { ToastProvider } from './lib/ToastContext'
+import { LangProvider } from './lib/LangContext'
 import { AppShell } from './components/AppShell'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Accueil } from './pages/Accueil'
@@ -23,6 +24,7 @@ import { Signalements } from './pages/Signalements'
 function App() {
   return (
     <BrowserRouter>
+      <LangProvider>
       <AuthProvider>
         <ToastProvider>
           <Routes>
@@ -54,6 +56,7 @@ function App() {
           </Routes>
         </ToastProvider>
       </AuthProvider>
+      </LangProvider>
     </BrowserRouter>
   )
 }

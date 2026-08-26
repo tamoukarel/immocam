@@ -5,12 +5,14 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { urlPhoto } from '../lib/photos'
-import { libellePris, type Annonce } from '../lib/types'
+import { libellePris, libellePiece, type Annonce } from '../lib/types'
+import { useLang } from '../lib/LangContext'
 import { PageHeader } from '../components/PageHeader'
 
 export function MesAnnonces() {
   const { profil } = useAuth()
   const afficherToast = useToast()
+  const { lang, t } = useLang()
   const [annonces, setAnnonces] = useState<Annonce[] | null>(null)
 
   async function charger() {
@@ -30,9 +32,9 @@ export function MesAnnonces() {
 
   async function supprimer(a: Annonce) {
     if (!supabase) return
-    if (!confirm(`Supprimer cette annonce ?\n"${a.pieces} · ${a.quartier}, ${a.ville}"\n\nAction irréversible.`)) return
+    if (!confirm(t('mesAnnonces.confirmerSuppression', { nom: `${libellePiece(a.pieces, lang)} · ${a.quartier}, ${a.ville}` }))) return
     await supabase.from('annonces').delete().eq('id', a.id)
-    afficherToast('🗑️ Annonce supprimée')
+    afficherToast(t('mesAnnonces.supprime'))
     charger()
   }
 
@@ -41,20 +43,24 @@ export function MesAnnonces() {
     const nouveauStatut = a.statut === 'loue' ? 'dispo' : 'loue'
     setAnnonces((prev) => prev?.map((x) => (x.id === a.id ? { ...x, statut: nouveauStatut } : x)) ?? null)
     await supabase.from('annonces').update({ statut: nouveauStatut }).eq('id', a.id)
-    afficherToast(nouveauStatut === 'loue' ? `🔴 Marquée comme ${libellePris(a.type).toLowerCase()}e` : '🟢 Remise en disponible')
+    afficherToast(
+      nouveauStatut === 'loue'
+        ? t('mesAnnonces.marqueeComme', { statut: `${libellePris(a.type, lang).toLowerCase()}e` })
+        : t('mesAnnonces.remiseDisponible'),
+    )
   }
 
   return (
     <div>
-      <PageHeader titre="🏠 Mes annonces" sousTitre="✓ pour marquer loué/vendu · crayon pour modifier" retourVers="/profil" />
+      <PageHeader titre={t('mesAnnonces.titre')} sousTitre={t('mesAnnonces.sousTitre')} retourVers="/profil" />
       <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {annonces?.length === 0 && (
           <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">🏠</div>
-            <strong className="block font-heading text-navy mb-1.5">Aucune annonce publiée</strong>
-            <p className="text-sm text-slate-500 mb-4">Publiez votre premier bien gratuitement</p>
+            <strong className="block font-heading text-navy mb-1.5">{t('mesAnnonces.aucune')}</strong>
+            <p className="text-sm text-slate-500 mb-4">{t('mesAnnonces.publiezPremier')}</p>
             <Link to="/publier" className="inline-block bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-xl px-5 py-2.5 text-sm font-bold font-heading">
-              ➕ Publier
+              {t('mesAnnonces.publier')}
             </Link>
           </div>
         )}
@@ -65,10 +71,15 @@ export function MesAnnonces() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-heading font-bold text-sm text-navy truncate">
-                {a.pieces} · {a.quartier}
+                {libellePiece(a.pieces, lang)} · {a.quartier}
               </div>
               <div className="text-[11px] text-slate-500">
-                📍 {a.ville} · {a.statut === 'loue' ? <span className="text-red-600 font-semibold">{libellePris(a.type)}</span> : <span className="text-green-600 font-semibold">Disponible</span>}
+                📍 {a.ville} ·{' '}
+                {a.statut === 'loue' ? (
+                  <span className="text-red-600 font-semibold">{libellePris(a.type, lang)}</span>
+                ) : (
+                  <span className="text-green-600 font-semibold">{t('mesAnnonces.disponible')}</span>
+                )}
               </div>
               <div className="font-heading font-extrabold text-sm text-brand-blue">
                 {a.prix.toLocaleString('fr-FR')} FCFA{a.unite}
@@ -77,7 +88,7 @@ export function MesAnnonces() {
             <div className="flex gap-1.5 flex-shrink-0">
               <button
                 onClick={() => basculerStatut(a)}
-                title={a.statut === 'loue' ? 'Remettre en disponible' : `Marquer comme ${libellePris(a.type).toLowerCase()}e`}
+                title={a.statut === 'loue' ? t('mesAnnonces.remettreDisponible') : t('mesAnnonces.marquerComme', { statut: `${libellePris(a.type, lang).toLowerCase()}e` })}
                 className={
                   a.statut === 'loue'
                     ? 'bg-green-50 border-2 border-green-600 text-green-600 rounded-lg p-2'

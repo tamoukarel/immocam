@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { contacterProprietaire } from '../lib/whatsapp'
-import type { Annonce, ProfilColoc } from '../lib/types'
+import { libellePiece, type Annonce, type ProfilColoc } from '../lib/types'
+import { useLang } from '../lib/LangContext'
 
 export function Coloc() {
   const { profil } = useAuth()
   const afficherToast = useToast()
+  const { lang, t } = useLang()
   const [profils, setProfils] = useState<ProfilColoc[]>([])
   const [monProfil, setMonProfil] = useState<ProfilColoc | null>(null)
   const [logements, setLogements] = useState<Annonce[]>([])
@@ -38,13 +40,13 @@ export function Coloc() {
   async function publierProfil() {
     if (!supabase || !profil) return
     if (!universite.trim() || !filiere.trim() || !budget || Number(budget) <= 0) {
-      afficherToast('⚠️ Complète tous les champs')
+      afficherToast(t('coloc.champsIncomplets'))
       return
     }
     await supabase
       .from('profils_coloc')
       .insert({ utilisateur_id: profil.id, universite: universite.trim(), filiere: filiere.trim(), budget: Number(budget) })
-    afficherToast('✅ Profil coloc publié !')
+    afficherToast(t('coloc.profilPublieToast'))
     setUniversite('')
     setFiliere('')
     setBudget('')
@@ -54,15 +56,15 @@ export function Coloc() {
   async function retirerProfil() {
     if (!supabase || !profil) return
     await supabase.from('profils_coloc').delete().eq('utilisateur_id', profil.id)
-    afficherToast('Profil retiré')
+    afficherToast(t('coloc.profilRetire'))
     charger()
   }
 
   return (
     <div>
       <div className="px-5 pt-5 pb-3">
-        <h2 className="font-heading font-extrabold text-lg text-navy">🎓 Colocation étudiants</h2>
-        <p className="text-xs text-slate-500">Divise ton loyer par 2 ou 3 · Trouve un·e colocataire</p>
+        <h2 className="font-heading font-extrabold text-lg text-navy">{t('coloc.titre')}</h2>
+        <p className="text-xs text-slate-500">{t('coloc.sousTitre')}</p>
       </div>
 
       <div className="px-5 mb-4 md:max-w-lg">
@@ -70,9 +72,9 @@ export function Coloc() {
           monProfil ? (
             <div className="bg-teal-light border-2 border-teal/30 rounded-2xl p-3.5 flex items-center justify-between">
               <div>
-                <div className="font-heading font-bold text-sm text-navy">Ton profil est publié ✓</div>
+                <div className="font-heading font-bold text-sm text-navy">{t('coloc.profilPublie')}</div>
                 <div className="text-xs text-slate-500">
-                  {monProfil.universite} · {monProfil.filiere} · {monProfil.budget.toLocaleString('fr-FR')} F/mois
+                  {monProfil.universite} · {monProfil.filiere} · {monProfil.budget.toLocaleString('fr-FR')} {t('coloc.moisAbrev')}
                 </div>
               </div>
               <button onClick={retirerProfil} className="bg-white border-2 border-red-100 text-red-600 rounded-lg p-2">
@@ -81,34 +83,34 @@ export function Coloc() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm">
-              <div className="font-heading font-extrabold text-sm text-navy mb-3">➕ Publier mon profil coloc</div>
+              <div className="font-heading font-extrabold text-sm text-navy mb-3">{t('coloc.publierMonProfil')}</div>
               <div className="flex flex-col gap-2.5">
-                <input value={universite} onChange={(e) => setUniversite(e.target.value)} placeholder="Université (ex: UY2)" className="fi" />
-                <input value={filiere} onChange={(e) => setFiliere(e.target.value)} placeholder="Filière (ex: Droit)" className="fi" />
-                <input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" placeholder="Budget FCFA/mois" className="fi" />
+                <input value={universite} onChange={(e) => setUniversite(e.target.value)} placeholder={t('coloc.universitePlaceholder')} className="fi" />
+                <input value={filiere} onChange={(e) => setFiliere(e.target.value)} placeholder={t('coloc.filierePlaceholder')} className="fi" />
+                <input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" placeholder={t('coloc.budgetPlaceholder')} className="fi" />
                 <button onClick={publierProfil} className="btn-next">
-                  Publier mon profil
+                  {t('coloc.publier')}
                 </button>
               </div>
             </div>
           )
         ) : (
-          <p className="text-xs text-slate-500 bg-blue-light rounded-xl p-3">Connecte-toi pour publier ton profil et être trouvé par d'autres étudiants.</p>
+          <p className="text-xs text-slate-500 bg-blue-light rounded-xl p-3">{t('coloc.connexionRequise')}</p>
         )}
       </div>
 
       <div className="px-5 pb-2.5">
-        <SectionTitle titre="Profils colocataires" />
+        <SectionTitle titre={t('coloc.profilsColocataires')} />
       </div>
       <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2">
-        {profils.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-4">Aucun profil pour l'instant.</p>}
+        {profils.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-4">{t('coloc.aucunProfil')}</p>}
         {profils.map((p) => (
           <div key={p.utilisateur_id} className="flex items-center gap-3 bg-gradient-to-br from-teal-light to-[#fff8f0] rounded-2xl p-2.5 border-2 border-teal/20">
             <span className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#fe4701] flex items-center justify-center text-white flex-shrink-0">
               <GraduationCap size={17} />
             </span>
             <div className="flex-1">
-              <div className="font-heading font-bold text-sm text-navy">{p.profils?.nom || 'Étudiant·e ImmoCam'}</div>
+              <div className="font-heading font-bold text-sm text-navy">{p.profils?.nom || t('coloc.etudiantAnonyme')}</div>
               <div className="text-[11px] text-slate-500">
                 {p.universite} · {p.filiere}
               </div>
@@ -121,21 +123,21 @@ export function Coloc() {
       </div>
 
       <div className="px-5 pb-2.5">
-        <SectionTitle titre="Logements en coloc" />
+        <SectionTitle titre={t('coloc.logementsEnColoc')} />
       </div>
       <div className="px-5 pb-6 bg-white rounded-2xl border-2 border-slate-100 shadow-sm mx-5 p-3.5">
-        {logements.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Aucun logement abordable pour l'instant.</p>}
+        {logements.length === 0 && <p className="text-sm text-slate-400 text-center py-4">{t('coloc.aucunLogement')}</p>}
         {logements.map((l) => (
           <div key={l.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
             <div>
               <div className="font-heading font-bold text-sm text-navy">
-                {l.pieces} · {l.quartier}
+                {libellePiece(l.pieces, lang)} · {l.quartier}
               </div>
               <div className="text-[10px] text-slate-500">📍 {l.ville}</div>
             </div>
-            <button onClick={() => contacterProprietaire(l, profil?.id ?? null)} className="text-right">
+            <button onClick={() => contacterProprietaire(l, profil?.id ?? null, lang)} className="text-right">
               <div className="font-heading font-extrabold text-sm text-teal">{Math.round(l.prix / 2).toLocaleString('fr-FR')} F</div>
-              <div className="text-[10px] text-slate-400">par pers./mois</div>
+              <div className="text-[10px] text-slate-400">{t('coloc.parPersMois')}</div>
             </button>
           </div>
         ))}

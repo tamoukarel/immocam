@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { lienWhatsapp } from '../lib/whatsapp'
 import { PageHeader } from '../components/PageHeader'
+import { useLang } from '../lib/LangContext'
 
 interface DemandeAffichee {
   id: string
@@ -16,6 +17,7 @@ interface DemandeAffichee {
 
 export function Messages() {
   const { profil } = useAuth()
+  const { lang, t } = useLang()
   const [demandes, setDemandes] = useState<DemandeAffichee[] | null>(null)
 
   useEffect(() => {
@@ -30,13 +32,13 @@ export function Messages() {
 
   return (
     <div>
-      <PageHeader titre="💬 Messages reçus" sousTitre="Demandes de contact sur vos annonces" retourVers="/profil" />
+      <PageHeader titre={t('messages.titre')} sousTitre={t('messages.sousTitre')} retourVers="/profil" />
       <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {demandes?.length === 0 && (
           <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">💬</div>
-            <strong className="block font-heading text-navy mb-1.5">Aucun message reçu</strong>
-            <p className="text-sm text-slate-500">Les demandes apparaîtront ici dès qu'un locataire vous contactera</p>
+            <strong className="block font-heading text-navy mb-1.5">{t('messages.aucun')}</strong>
+            <p className="text-sm text-slate-500">{t('messages.attente')}</p>
           </div>
         )}
         {demandes?.map((d) => (
@@ -47,21 +49,24 @@ export function Messages() {
               </span>
               <div>
                 <div className="font-heading font-bold text-sm text-navy">
-                  {d.expediteur?.nom || d.expediteur?.profils_prive?.telephone || 'Utilisateur ImmoCam'}
+                  {d.expediteur?.nom || d.expediteur?.profils_prive?.telephone || t('detail.utilisateurAnonyme')}
                 </div>
                 <div className="text-[10px] text-slate-400">
-                  {new Date(d.created_at).toLocaleDateString('fr-FR')} · {d.annonces ? `${d.annonces.pieces} · ${d.annonces.quartier}` : 'Annonce supprimée'}
+                  {new Date(d.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')} · {d.annonces ? `${d.annonces.pieces} · ${d.annonces.quartier}` : t('messages.annonceSupprimee')}
                 </div>
               </div>
             </div>
             {d.expediteur?.profils_prive?.telephone && (
               <a
-                href={lienWhatsapp(d.expediteur.profils_prive.telephone.replace(/\D/g, ''), `Bonjour, au sujet de votre demande pour "${d.annonces?.pieces ?? ''} ${d.annonces?.quartier ?? ''}"`)}
+                href={lienWhatsapp(
+                  d.expediteur.profils_prive.telephone.replace(/\D/g, ''),
+                  t('messages.bonjourAuSujet', { annonce: `${d.annonces?.pieces ?? ''} ${d.annonces?.quartier ?? ''}` }),
+                )}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-full px-3.5 py-1.5 text-xs font-bold font-heading"
               >
-                <MessageCircle size={13} /> Répondre sur WhatsApp
+                <MessageCircle size={13} /> {t('messages.repondreWhatsapp')}
               </a>
             )}
           </div>

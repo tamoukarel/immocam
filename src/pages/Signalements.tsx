@@ -6,6 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { lienWhatsapp } from '../lib/whatsapp'
 import { PageHeader } from '../components/PageHeader'
+import { useLang } from '../lib/LangContext'
 
 interface SignalementAffiche {
   id: string
@@ -19,6 +20,7 @@ interface SignalementAffiche {
 export function Signalements() {
   const { profil } = useAuth()
   const afficherToast = useToast()
+  const { lang, t } = useLang()
   const [signalements, setSignalements] = useState<SignalementAffiche[] | null>(null)
 
   async function charger() {
@@ -39,41 +41,41 @@ export function Signalements() {
     if (!supabase) return
     await supabase.from('signalements').delete().eq('id', id)
     setSignalements((prev) => prev?.filter((s) => s.id !== id) ?? null)
-    afficherToast('✅ Signalement traité')
+    afficherToast(t('signalements.traite'))
   }
 
   async function supprimerAnnonce(s: SignalementAffiche) {
     if (!supabase) return
-    if (!confirm(`Supprimer définitivement cette annonce ?\n"${s.annonces?.pieces} · ${s.annonces?.quartier}"\n\nAction irréversible.`)) return
+    if (!confirm(t('signalements.confirmerSuppression', { nom: `${s.annonces?.pieces} · ${s.annonces?.quartier}` }))) return
     const { error } = await supabase.from('annonces').delete().eq('id', s.annonce_id)
     if (error) {
-      afficherToast('⚠️ Échec de la suppression')
+      afficherToast(t('signalements.echecSuppression'))
       return
     }
     // La suppression de l'annonce entraîne (on delete cascade) celle de tous
     // les signalements qui la concernent, pas seulement celui-ci.
     setSignalements((prev) => prev?.filter((x) => x.annonce_id !== s.annonce_id) ?? null)
-    afficherToast('🗑️ Annonce supprimée')
+    afficherToast(t('signalements.annonceSupprimeeToast'))
   }
 
   if (!profil?.estAdmin) {
     return (
       <div>
-        <PageHeader titre="🚩 Signalements" retourVers="/profil" />
-        <p className="text-center text-sm text-slate-400 py-16 px-5">Cette page est réservée à l'administration d'ImmoCam.</p>
+        <PageHeader titre={t('signalements.titre')} retourVers="/profil" />
+        <p className="text-center text-sm text-slate-400 py-16 px-5">{t('signalements.reserveAdmin')}</p>
       </div>
     )
   }
 
   return (
     <div>
-      <PageHeader titre="🚩 Signalements" sousTitre="Annonces signalées par les visiteurs" retourVers="/profil" />
+      <PageHeader titre={t('signalements.titre')} sousTitre={t('signalements.sousTitre')} retourVers="/profil" />
       <div className="px-5 pb-6 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {signalements?.length === 0 && (
           <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">✅</div>
-            <strong className="block font-heading text-navy mb-1.5">Aucun signalement</strong>
-            <p className="text-sm text-slate-500">Tout est calme pour l'instant.</p>
+            <strong className="block font-heading text-navy mb-1.5">{t('signalements.aucun')}</strong>
+            <p className="text-sm text-slate-500">{t('signalements.toutCalme')}</p>
           </div>
         )}
         {signalements?.map((s) => (
@@ -83,11 +85,11 @@ export function Signalements() {
                 <Flag size={14} />
               </span>
               <div className="text-[11px] text-slate-400">
-                {new Date(s.created_at).toLocaleDateString('fr-FR')} · par {s.expediteur?.nom || 'anonyme'}
+                {new Date(s.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')} · {t('signalements.par', { nom: s.expediteur?.nom || t('signalements.anonyme') })}
               </div>
             </div>
             <div className="text-sm font-semibold text-navy mb-1">
-              {s.annonces ? `${s.annonces.pieces} · ${s.annonces.quartier}, ${s.annonces.ville}` : 'Annonce supprimée'}
+              {s.annonces ? `${s.annonces.pieces} · ${s.annonces.quartier}, ${s.annonces.ville}` : t('signalements.annonceSupprimee')}
             </div>
             <p className="text-xs text-slate-600 bg-bg rounded-lg p-2 mb-2.5">{s.motif}</p>
             <div className="flex gap-2 mb-2">
@@ -96,17 +98,17 @@ export function Signalements() {
                   to={`/annonces/${s.annonce_id}`}
                   className="flex-1 text-center bg-blue-light text-brand-blue rounded-lg py-2 text-xs font-bold font-heading flex items-center justify-center gap-1"
                 >
-                  <ExternalLink size={12} /> Voir
+                  <ExternalLink size={12} /> {t('signalements.voir')}
                 </Link>
               )}
               {s.annonces?.whatsapp && (
                 <a
-                  href={lienWhatsapp(s.annonces.whatsapp, `Bonjour, votre annonce "${s.annonces.pieces} ${s.annonces.quartier}" sur ImmoCam a été signalée. Pouvez-vous nous en dire plus ?`)}
+                  href={lienWhatsapp(s.annonces.whatsapp, t('signalements.messageContact', { annonce: `${s.annonces.pieces} ${s.annonces.quartier}` }))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex-1 text-center bg-teal-light text-teal rounded-lg py-2 text-xs font-bold font-heading flex items-center justify-center gap-1"
                 >
-                  <MessageCircle size={12} /> Contacter
+                  <MessageCircle size={12} /> {t('signalements.contacter')}
                 </a>
               )}
             </div>
@@ -116,14 +118,14 @@ export function Signalements() {
                   onClick={() => supprimerAnnonce(s)}
                   className="flex-1 bg-red-500 text-white rounded-lg py-2 text-xs font-bold font-heading flex items-center justify-center gap-1"
                 >
-                  <ShieldOff size={12} /> Supprimer l'annonce
+                  <ShieldOff size={12} /> {t('signalements.supprimerAnnonce')}
                 </button>
               )}
               <button
                 onClick={() => traiter(s.id)}
                 className="flex-1 bg-red-50 text-red-600 rounded-lg py-2 text-xs font-bold font-heading flex items-center justify-center gap-1"
               >
-                <Trash2 size={12} /> Marquer traité
+                <Trash2 size={12} /> {t('signalements.marquerTraite')}
               </button>
             </div>
           </div>

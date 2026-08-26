@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { MessageCircle, MapPin, Home, Flag, Map, Clock, Wallet, Share2, Eye, Building2, User, X, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { libelleNiveau, libellePris, type Annonce } from '../lib/types'
+import { libelleNiveau, libellePris, libellePiece, libelleDistance, type Annonce } from '../lib/types'
 import { urlPhoto } from '../lib/photos'
 import { contacterProprietaire } from '../lib/whatsapp'
 import { useAuth } from '../lib/AuthContext'
 import { useFavoris } from '../lib/useFavoris'
 import { useToast } from '../lib/ToastContext'
 import { ilYA, membreDepuis } from '../lib/dates'
+import { useLang } from '../lib/LangContext'
 import { PageHeader } from '../components/PageHeader'
 
 function lienCarte(quartier: string, ville: string): string {
@@ -24,6 +25,7 @@ export function AnnonceDetail() {
   const { profil } = useAuth()
   const { favoris, basculer, connecte } = useFavoris()
   const afficherToast = useToast()
+  const { lang, t } = useLang()
   const [annonce, setAnnonce] = useState<AnnonceAvecProprietaire | null | undefined>(undefined)
   const [indexAgrandi, setIndexAgrandi] = useState<number | null>(null)
   const [modaleSignalement, setModaleSignalement] = useState(false)
@@ -57,11 +59,11 @@ export function AnnonceDetail() {
   async function onFavori() {
     if (!annonce) return
     if (!connecte) {
-      afficherToast('Connecte-toi pour sauvegarder des favoris')
+      afficherToast(t('carte.favoriConnexion'))
       return
     }
     const ok = await basculer(annonce.id)
-    if (ok) afficherToast(estFavori ? 'Retiré des favoris' : '❤️ Ajouté aux favoris !')
+    if (ok) afficherToast(estFavori ? t('carte.favoriRetire') : t('carte.favoriAjoute'))
   }
 
   function fermer() {
@@ -74,7 +76,7 @@ export function AnnonceDetail() {
 
   async function partager() {
     if (!annonce) return
-    const texte = `${annonce.pieces} · ${annonce.quartier}, ${annonce.ville} — ${annonce.prix.toLocaleString('fr-FR')} FCFA${annonce.unite} sur ImmoCam`
+    const texte = `${libellePiece(annonce.pieces, lang)} · ${annonce.quartier}, ${annonce.ville} — ${annonce.prix.toLocaleString('fr-FR')} FCFA${annonce.unite} sur ImmoCam`
     if (navigator.share) {
       try {
         await navigator.share({ title: 'ImmoCam', text: texte, url: window.location.href })
@@ -84,13 +86,13 @@ export function AnnonceDetail() {
       return
     }
     await navigator.clipboard.writeText(window.location.href)
-    afficherToast('🔗 Lien copié !')
+    afficherToast(t('carte.lienCopie'))
   }
 
   async function envoyerSignalement() {
     if (!supabase || !annonce) return
     if (!motifSignalement.trim()) {
-      afficherToast('⚠️ Précise un motif')
+      afficherToast(t('detail.motifVide'))
       return
     }
     setEnvoiSignalement(true)
@@ -98,7 +100,7 @@ export function AnnonceDetail() {
     setEnvoiSignalement(false)
     setModaleSignalement(false)
     setMotifSignalement('')
-    afficherToast('Merci, votre signalement a été transmis.')
+    afficherToast(t('detail.merciSignalement'))
   }
 
   if (annonce === undefined) {
@@ -115,9 +117,9 @@ export function AnnonceDetail() {
   if (annonce === null) {
     return (
       <div className="text-center py-16 px-5">
-        <p className="text-slate-500 mb-3">Cette annonce n'existe plus.</p>
+        <p className="text-slate-500 mb-3">{t('detail.introuvable')}</p>
         <button onClick={() => navigate('/annonces')} className="text-brand-blue font-bold text-sm">
-          Retour aux annonces
+          {t('detail.retourAnnonces')}
         </button>
       </div>
     )
@@ -176,32 +178,34 @@ export function AnnonceDetail() {
               annonce.statut === 'loue' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
             }`}
           >
-            {annonce.statut === 'loue' ? `🔴 Déjà ${libellePris(annonce.type).toLowerCase()}` : '🟢 Disponible'}
+            {annonce.statut === 'loue' ? t('carte.dejaPris', { statut: libellePris(annonce.type, lang).toLowerCase() }) : t('carte.disponible')}
           </span>
         </div>
         <h1 className="font-heading font-extrabold text-lg text-navy mb-1">
-          {annonce.pieces} · {annonce.quartier}
+          {libellePiece(annonce.pieces, lang)} · {annonce.quartier}
         </h1>
         <div className="flex items-center gap-2.5 text-xs text-slate-500 mb-2">
           <span className="flex items-center gap-1">
-            <MapPin size={12} /> {annonce.ville} · {annonce.type === 'vente' ? 'Vente' : 'Location'}
+            <MapPin size={12} /> {annonce.ville} · {annonce.type === 'vente' ? t('detail.vente') : t('detail.location')}
           </span>
           <a href={lienCarte(annonce.quartier, annonce.ville)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-blue font-semibold">
-            <Map size={12} /> Voir sur la carte
+            <Map size={12} /> {t('detail.voirCarte')}
           </a>
         </div>
         <div className="text-[11px] text-slate-400 flex items-center gap-3 mb-2">
           <span className="flex items-center gap-1">
-            <Clock size={11} /> Publié {ilYA(annonce.created_at)}
+            <Clock size={11} /> {t('detail.publie', { temps: ilYA(annonce.created_at, lang) })}
           </span>
           <span className="flex items-center gap-1">
-            <Eye size={11} /> {annonce.vues} vue{annonce.vues > 1 ? 's' : ''}
+            <Eye size={11} /> {t('detail.vue', { n: annonce.vues, s: annonce.vues > 1 ? 's' : '' })}
           </span>
         </div>
         {(annonce.niveau || annonce.distance_route) && (
           <div className="text-xs text-slate-500 flex items-center gap-1 mb-2">
             <Building2 size={12} />
-            {[annonce.niveau ? libelleNiveau(annonce.niveau) : null, annonce.distance_route].filter(Boolean).join(' · ')}
+            {[annonce.niveau ? libelleNiveau(annonce.niveau, lang) : null, annonce.distance_route ? libelleDistance(annonce.distance_route, lang) : null]
+              .filter(Boolean)
+              .join(' · ')}
           </div>
         )}
         <div className="font-heading font-black text-2xl text-brand-blue mb-3">
@@ -212,10 +216,10 @@ export function AnnonceDetail() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 mb-4 flex items-start gap-2">
             <Wallet size={14} className="flex-shrink-0 mt-0.5" />
             <span>
-              À la signature :{' '}
+              {t('detail.aLaSignature')}{' '}
               {[
-                annonce.avance_mois ? `${annonce.avance_mois} mois d'avance` : null,
-                annonce.caution_mois ? `${annonce.caution_mois} mois de caution` : null,
+                annonce.avance_mois ? t('detail.moisAvance', { n: annonce.avance_mois }) : null,
+                annonce.caution_mois ? t('detail.moisCaution', { n: annonce.caution_mois }) : null,
               ]
                 .filter(Boolean)
                 .join(' + ')}
@@ -230,25 +234,25 @@ export function AnnonceDetail() {
               {annonce.profils.photo ? <img src={urlPhoto(annonce.profils.photo)} className="w-full h-full object-cover" /> : <User size={16} />}
             </span>
             <div className="text-xs">
-              <div className="font-heading font-bold text-navy">{annonce.profils.nom || 'Utilisateur ImmoCam'}</div>
-              <div className="text-slate-500">Membre depuis {membreDepuis(annonce.profils.created_at)}</div>
+              <div className="font-heading font-bold text-navy">{annonce.profils.nom || t('detail.utilisateurAnonyme')}</div>
+              <div className="text-slate-500">{t('detail.membreDepuis', { temps: membreDepuis(annonce.profils.created_at, lang) })}</div>
             </div>
           </div>
         )}
 
         <div className="flex gap-2.5 pb-6">
           <button
-            onClick={() => contacterProprietaire(annonce, profil?.id ?? null)}
+            onClick={() => contacterProprietaire(annonce, profil?.id ?? null, lang)}
             className="flex-1 bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-xl py-3.5 text-sm font-bold font-heading flex items-center justify-center gap-1.5 shadow"
           >
-            <MessageCircle size={16} /> WhatsApp
+            <MessageCircle size={16} /> {t('detail.whatsapp')}
           </button>
           <button onClick={fermer} className="bg-bg border-2 border-slate-100 text-navy rounded-xl px-5 text-sm font-bold font-heading active:scale-95 transition-transform">
-            Fermer
+            {t('detail.fermer')}
           </button>
         </div>
         <button onClick={() => setModaleSignalement(true)} className="mx-auto mb-6 -mt-3 flex items-center gap-1 text-[11px] text-slate-400">
-          <Flag size={11} /> Signaler cette annonce
+          <Flag size={11} /> {t('detail.signaler')}
         </button>
       </div>
 
@@ -305,26 +309,26 @@ export function AnnonceDetail() {
           <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl p-4 w-full max-w-sm shadow-lg">
             <div className="flex items-center justify-between mb-1">
               <div className="font-heading font-extrabold text-sm text-navy flex items-center gap-1.5">
-                <Flag size={14} className="text-red-500" /> Signaler cette annonce
+                <Flag size={14} className="text-red-500" /> {t('detail.signalerTitre')}
               </div>
               <button onClick={() => setModaleSignalement(false)} aria-label="Fermer" className="text-slate-400 active:scale-90 transition-transform">
                 <X size={18} />
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 mb-3">Arnaque, fausse annonce, déjà louée… dis-nous pourquoi.</p>
+            <p className="text-[11px] text-slate-500 mb-3">{t('detail.signalerTexte')}</p>
             <textarea
               value={motifSignalement}
               onChange={(e) => setMotifSignalement(e.target.value)}
-              placeholder="Motif du signalement"
+              placeholder={t('detail.motifPlaceholder')}
               className="fi resize-none h-[70px] mb-3"
               autoFocus
             />
             <div className="flex gap-2.5">
               <button onClick={() => setModaleSignalement(false)} className="btn-prev">
-                Annuler
+                {t('detail.annuler')}
               </button>
               <button onClick={envoyerSignalement} disabled={envoiSignalement} className="btn-next disabled:opacity-60">
-                {envoiSignalement ? 'Envoi…' : 'Envoyer'}
+                {envoiSignalement ? t('detail.envoi') : t('detail.envoyer')}
               </button>
             </div>
           </div>

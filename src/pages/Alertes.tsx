@@ -5,10 +5,12 @@ import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
 import { VILLES, type AlertePrix, type TypeAnnonce } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
+import { useLang } from '../lib/LangContext'
 
 export function Alertes() {
   const { profil } = useAuth()
   const afficherToast = useToast()
+  const { t } = useLang()
   const [alertes, setAlertes] = useState<AlertePrix[]>([])
   const [correspondances, setCorrespondances] = useState<Record<string, number>>({})
   const [ville, setVille] = useState<string>(VILLES[0])
@@ -43,30 +45,30 @@ export function Alertes() {
   async function creer() {
     if (!supabase || !profil) return
     if (!budget || Number(budget) <= 0) {
-      afficherToast('⚠️ Entrez un budget valide')
+      afficherToast(t('alertes.erreurBudget'))
       return
     }
     await supabase.from('alertes_prix').insert({ utilisateur_id: profil.id, ville, budget_max: Number(budget), type })
     setBudget('')
-    afficherToast('🔔 Alerte créée !')
+    afficherToast(t('alertes.creee'))
     charger()
   }
 
   async function supprimer(id: string) {
     await supabase?.from('alertes_prix').delete().eq('id', id)
-    afficherToast('Alerte supprimée')
+    afficherToast(t('alertes.supprimee'))
     charger()
   }
 
   return (
     <div>
-      <PageHeader titre="🔖 Recherches sauvegardées" sousTitre="Reviens ici pour voir combien de biens correspondent — pas de notification push pour l'instant" retourVers="/profil" />
+      <PageHeader titre={t('alertes.titre')} sousTitre={t('alertes.sousTitre')} retourVers="/profil" />
       <div className="px-5 pb-6">
         <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-3.5 md:max-w-lg">
-          <div className="font-heading font-extrabold text-sm text-navy mb-3">➕ Enregistrer une recherche</div>
+          <div className="font-heading font-extrabold text-sm text-navy mb-3">{t('alertes.enregistrerRecherche')}</div>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="fl">Ville</label>
+              <label className="fl">{t('alertes.champ.ville')}</label>
               <select value={ville} onChange={(e) => setVille(e.target.value)} className="fs">
                 {VILLES.map((v) => (
                   <option key={v}>{v}</option>
@@ -75,34 +77,38 @@ export function Alertes() {
             </div>
             <div className="flex gap-2.5">
               <div className="flex-1 min-w-0">
-                <label className="fl">Budget max</label>
-                <input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" placeholder="Ex: 100000" className="fi" />
+                <label className="fl">{t('alertes.champ.budgetMax')}</label>
+                <input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" placeholder={t('alertes.budgetPlaceholder')} className="fi" />
               </div>
               <div className="flex-1 min-w-0">
-                <label className="fl">Type</label>
+                <label className="fl">{t('alertes.champ.type')}</label>
                 <select value={type} onChange={(e) => setType(e.target.value as TypeAnnonce)} className="fs">
-                  <option value="location">Location</option>
-                  <option value="vente">Vente</option>
+                  <option value="location">{t('alertes.type.location')}</option>
+                  <option value="vente">{t('alertes.type.vente')}</option>
                 </select>
               </div>
             </div>
             <button onClick={creer} className="btn-next">
-              🔖 Sauvegarder cette recherche
+              {t('alertes.sauvegarder')}
             </button>
           </div>
         </div>
 
-        {alertes.length === 0 && <p className="text-center text-sm text-slate-400 italic py-4">Aucune recherche sauvegardée</p>}
+        {alertes.length === 0 && <p className="text-center text-sm text-slate-400 italic py-4">{t('alertes.aucune')}</p>}
         <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2">
           {alertes.map((a) => (
             <div key={a.id} className="bg-white rounded-2xl border-2 border-slate-100 p-3 flex items-center justify-between shadow-sm">
               <div>
                 <div className="font-heading font-bold text-sm text-navy">
-                  📍 {a.type === 'vente' ? 'Vente' : 'Location'} · {a.ville}
+                  📍 {a.type === 'vente' ? t('alertes.type.vente') : t('alertes.type.location')} · {a.ville}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Budget max : {a.budget_max.toLocaleString('fr-FR')} F{a.type === 'location' ? '/mois' : ''}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  {t('alertes.budgetMaxAffiche', { n: a.budget_max.toLocaleString('fr-FR'), unite: a.type === 'location' ? '/mois' : '' })}
+                </div>
                 <div className={`text-[10px] font-semibold mt-0.5 ${correspondances[a.id] ? 'text-teal' : 'text-slate-400'}`}>
-                  {correspondances[a.id] ? `✓ ${correspondances[a.id]} bien${correspondances[a.id] > 1 ? 's' : ''} correspondent déjà` : 'Aucun bien pour l\'instant'}
+                  {correspondances[a.id]
+                    ? t('alertes.correspondent', { n: correspondances[a.id], s: correspondances[a.id] > 1 ? 's' : '' })
+                    : t('alertes.aucunBien')}
                 </div>
               </div>
               <button onClick={() => supprimer(a.id)} className="bg-red-50 border-2 border-red-100 text-red-600 rounded-lg p-2 flex-shrink-0">

@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { List, LayoutGrid } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { TYPES_PIECES, type Annonce, type TypeAnnonce } from '../lib/types'
+import { TYPES_PIECES, libellePiece, type Annonce, type TypeAnnonce } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
+import { useLang } from '../lib/LangContext'
 
 const TRANCHES_PRIX = [
-  { label: 'Tous prix', min: 0, max: Infinity },
-  { label: '- 60k F', min: 0, max: 60000 },
-  { label: '60k–120k', min: 60000, max: 120000 },
-  { label: '120k–250k', min: 120000, max: 250000 },
-  { label: '+ 250k', min: 250000, max: Infinity },
+  { cle: 'annonces.filtre.tousPrix', min: 0, max: Infinity },
+  { cle: 'annonces.trancheMoins', min: 0, max: 60000 },
+  { cle: 'annonces.tranche1', min: 60000, max: 120000 },
+  { cle: 'annonces.tranche2', min: 120000, max: 250000 },
+  { cle: 'annonces.tranchePlus', min: 250000, max: Infinity },
 ] as const
 
 const TAILLE_PAGE = 20
@@ -18,6 +19,7 @@ const TAILLE_PAGE = 20
 export function Annonces() {
   const [params] = useSearchParams()
   const recherche = params.get('q')?.toLowerCase().trim() ?? ''
+  const { lang, t } = useLang()
 
   const [annonces, setAnnonces] = useState<Annonce[]>([])
   const [chargement, setChargement] = useState(true)
@@ -77,49 +79,49 @@ export function Annonces() {
   return (
     <div>
       <div className="px-5 pt-5 pb-3">
-        <h2 className="font-heading font-extrabold text-lg text-navy">🏠 Toutes les annonces</h2>
-        <p className="text-xs text-slate-500">Propriétaires directs · 0 FCFA de commission</p>
+        <h2 className="font-heading font-extrabold text-lg text-navy">{t('annonces.titre')}</h2>
+        <p className="text-xs text-slate-500">{t('annonces.sousTitre')}</p>
       </div>
 
       <div className="px-5 pb-2 flex flex-col gap-2">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
           <Chip actif={type === 'all'} onClick={() => setType('all')}>
-            Tout
+            {t('annonces.filtre.tout')}
           </Chip>
           <Chip actif={type === 'location'} onClick={() => setType('location')}>
-            🔑 Location
+            {t('annonces.filtre.location')}
           </Chip>
           <Chip actif={type === 'vente'} onClick={() => setType('vente')}>
-            💰 Vente
+            {t('annonces.filtre.vente')}
           </Chip>
         </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
           <Chip actif={pieces === 'all'} onClick={() => setPieces('all')}>
-            Toutes tailles
+            {t('annonces.filtre.toutesTailles')}
           </Chip>
           {TYPES_PIECES.map((p) => (
             <Chip key={p} actif={pieces === p} onClick={() => setPieces(p)}>
-              {p}
+              {libellePiece(p, lang)}
             </Chip>
           ))}
         </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
-          {TRANCHES_PRIX.map((t, i) => (
-            <Chip key={t.label} actif={tranche === i} onClick={() => setTranche(i)}>
-              {t.label}
+          {TRANCHES_PRIX.map((tr, i) => (
+            <Chip key={tr.cle} actif={tranche === i} onClick={() => setTranche(i)}>
+              {t(tr.cle)}
             </Chip>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-slate-500">Trier :</span>
+          <span className="text-[11px] font-semibold text-slate-500">{t('annonces.trier')}</span>
           <select
             value={tri}
             onChange={(e) => setTri(e.target.value as typeof tri)}
             className="border-2 border-slate-100 rounded-full px-2.5 py-1 text-[11px] text-slate-600"
           >
-            <option value="recent">Plus récentes</option>
-            <option value="price-asc">Prix croissant</option>
-            <option value="price-desc">Prix décroissant</option>
+            <option value="recent">{t('annonces.tri.recent')}</option>
+            <option value="price-asc">{t('annonces.tri.prixCroissant')}</option>
+            <option value="price-desc">{t('annonces.tri.prixDecroissant')}</option>
           </select>
           <div className="flex gap-1 ml-auto">
             <button
@@ -139,15 +141,15 @@ export function Annonces() {
       </div>
 
       <p className="text-[11px] text-slate-400 font-medium px-5 pb-2">
-        {chargement ? 'Chargement…' : `${annonces.length} annonce${annonces.length > 1 ? 's' : ''} affichée${annonces.length > 1 ? 's' : ''}`}
+        {chargement ? t('annonces.chargement') : t('annonces.affichees', { n: annonces.length, s: annonces.length > 1 ? 's' : '' })}
       </p>
 
       <div className={`px-5 pb-4 ${vue === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5' : 'flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-3'}`}>
         {!chargement && annonces.length === 0 && (
           <div className="col-span-full text-center py-11">
             <div className="text-5xl mb-3">🔍</div>
-            <strong className="block font-heading text-navy mb-1.5">Aucun résultat</strong>
-            <p className="text-sm text-slate-500">Essayez d'autres filtres</p>
+            <strong className="block font-heading text-navy mb-1.5">{t('annonces.aucunResultat')}</strong>
+            <p className="text-sm text-slate-500">{t('annonces.essayezAutresFiltres')}</p>
           </div>
         )}
         {annonces.map((a) => (
@@ -162,7 +164,7 @@ export function Annonces() {
             disabled={chargementPlus}
             className="border-2 border-brand-blue text-brand-blue rounded-full px-5 py-2 text-xs font-bold font-heading disabled:opacity-60"
           >
-            {chargementPlus ? 'Chargement…' : 'Charger plus d’annonces'}
+            {chargementPlus ? t('annonces.chargement') : t('annonces.chargerPlus')}
           </button>
         </div>
       )}

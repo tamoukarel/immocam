@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import type { Annonce } from '../lib/types'
 import { VILLES } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
+import { useLang } from '../lib/LangContext'
 
 const ICONES_VILLE: Record<string, string> = {
   Yaoundé: '🏛️',
@@ -27,14 +28,15 @@ const ICONES_VILLE: Record<string, string> = {
 }
 
 const MODULES = [
-  { to: '/annonces', icone: HomeIcon, num: '01', titre: 'Trouver sans agence', pts: ['Propriétaires directs', '0 FCFA commission'] },
-  { to: '/coloc', icone: GraduationCap, num: '02', titre: 'Colocation étudiants', pts: ['Trouver un colocataire', 'Loyer divisé par 2'] },
-  { to: '/budget', icone: Wallet, num: '03', titre: 'Recherche par budget', pts: ['Filtre mensuel', '0 visite inutile'] },
-  { to: '/courte-duree', icone: Palmtree, num: '04', titre: 'Location courte durée', pts: ['Louer à la nuit', 'Idéal touristes'] },
+  { to: '/annonces', icone: HomeIcon, num: '01', titreCle: 'accueil.module1.titre', pts: ['accueil.module1.pt1', 'accueil.module1.pt2'] },
+  { to: '/coloc', icone: GraduationCap, num: '02', titreCle: 'accueil.module2.titre', pts: ['accueil.module2.pt1', 'accueil.module2.pt2'] },
+  { to: '/budget', icone: Wallet, num: '03', titreCle: 'accueil.module3.titre', pts: ['accueil.module3.pt1', 'accueil.module3.pt2'] },
+  { to: '/courte-duree', icone: Palmtree, num: '04', titreCle: 'accueil.module4.titre', pts: ['accueil.module4.pt1', 'accueil.module4.pt2'] },
 ] as const
 
 export function Accueil() {
   const navigate = useNavigate()
+  const { t } = useLang()
   const [recherche, setRecherche] = useState('')
   const [ville, setVille] = useState<string>(VILLES[0])
   const [annonces, setAnnonces] = useState<Annonce[]>([])
@@ -59,15 +61,15 @@ export function Accueil() {
     <div>
       <div className="bg-gradient-to-br from-navy via-brand-blue to-teal px-5 pt-5 pb-5 relative overflow-hidden">
         <div className="inline-flex items-center gap-1.5 bg-white/20 border border-white/30 rounded-full px-3 py-1 text-[10px] text-white font-bold font-heading mb-2.5">
-          ✦ Plateforme immobilière au Cameroun
+          {t('accueil.badge')}
         </div>
         <h1 className="font-heading font-black text-lg text-white leading-tight">
-          Votre <em className="not-italic text-gold">logement idéal</em>
+          {t('accueil.titre1')} <em className="not-italic text-gold">{t('accueil.titre2')}</em>
           <br />
-          sans agence ni commission
+          {t('accueil.titre3')}
         </h1>
         <p className="text-[11px] text-white/80 mb-3.5">
-          Propriétaires directs · <strong className="text-gold">0 FCFA</strong> de frais
+          {t('accueil.sousTitre')} · <strong className="text-gold">0 FCFA</strong> {t('accueil.frais')}
         </p>
         <div className="bg-white rounded-2xl p-3 shadow-lg relative z-10">
           <div className="flex gap-2">
@@ -75,21 +77,21 @@ export function Accueil() {
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && chercher()}
-              placeholder="Quartier, ville…"
+              placeholder={t('accueil.recherchePlaceholder')}
               className="flex-1 min-w-0 border-2 border-slate-100 rounded-lg px-3 py-2 text-sm bg-bg outline-none focus:border-brand-blue"
             />
             <button
               onClick={chercher}
               className="flex-shrink-0 whitespace-nowrap bg-gradient-to-br from-navy via-brand-blue to-teal text-white rounded-lg px-4 text-xs font-bold font-heading flex items-center gap-1"
             >
-              <Search size={14} /> Chercher
+              <Search size={14} /> {t('accueil.chercher')}
             </button>
           </div>
         </div>
       </div>
 
       <div className="px-5 pt-4 pb-2.5">
-        <SectionTitle titre="Choisir une ville" />
+        <SectionTitle titre={t('accueil.choisirVille')} />
       </div>
       <div className="flex gap-2 px-5 pb-3.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
         {VILLES.map((v) => (
@@ -106,10 +108,10 @@ export function Accueil() {
       </div>
 
       <div className="px-5 pb-2.5">
-        <SectionTitle titre="Nos fonctionnalités" />
+        <SectionTitle titre={t('accueil.fonctionnalites')} />
       </div>
       <div className="flex gap-2.5 px-5 pb-3.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
-        {MODULES.map(({ to, icone: Icone, num, titre, pts }) => (
+        {MODULES.map(({ to, icone: Icone, num, titreCle, pts }) => (
           <button
             key={to}
             onClick={() => navigate(to)}
@@ -118,13 +120,13 @@ export function Accueil() {
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-navy via-brand-blue to-teal" />
             <Icone size={26} className="text-brand-blue mb-1.5" />
             <div className="text-[8px] font-bold text-brand-blue tracking-wide font-heading uppercase mb-0.5">
-              App {num}/04
+              {t('accueil.appLabel')} {num}/04
             </div>
-            <div className="font-heading font-extrabold text-xs text-navy mb-1.5 leading-tight">{titre}</div>
+            <div className="font-heading font-extrabold text-xs text-navy mb-1.5 leading-tight">{t(titreCle)}</div>
             <ul className="flex flex-col gap-0.5">
               {pts.map((p) => (
                 <li key={p} className="text-[10px] text-slate-500 flex gap-1 leading-tight">
-                  <span className="text-teal font-bold">✓</span> {p}
+                  <span className="text-teal font-bold">✓</span> {t(p)}
                 </li>
               ))}
             </ul>
@@ -133,13 +135,13 @@ export function Accueil() {
       </div>
 
       <div className="px-5 pt-2.5 pb-2.5 flex items-center justify-between">
-        <SectionTitle titre="Annonces récentes" />
+        <SectionTitle titre={t('accueil.annoncesRecentes')} />
         <button onClick={() => navigate('/annonces')} className="text-[11px] text-brand-blue font-bold font-heading border-2 border-brand-blue rounded-full px-3 py-1 flex items-center gap-1">
-          Voir tout <ArrowRight size={12} />
+          {t('accueil.voirTout')} <ArrowRight size={12} />
         </button>
       </div>
       <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {annonces.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-6">Aucune annonce à {ville} pour l'instant.</p>}
+        {annonces.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-6">{t('accueil.aucuneAnnonce', { ville })}</p>}
         {annonces.map((a) => (
           <AnnonceCard key={a.id} annonce={a} />
         ))}
