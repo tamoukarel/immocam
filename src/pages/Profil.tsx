@@ -69,7 +69,7 @@ export function Profil() {
             rel="noreferrer"
             className="flex items-center gap-3 px-4 py-3.5 hover:bg-teal-light"
           >
-            <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-[#00a896] flex items-center justify-center text-white flex-shrink-0">
+            <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-[#fe4701] flex items-center justify-center text-white flex-shrink-0">
               <Phone size={16} />
             </span>
             <span className="flex-1 text-sm">Support WhatsApp</span>

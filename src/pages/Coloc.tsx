@@ -103,8 +103,8 @@ export function Coloc() {
       <div className="px-5 pb-4 flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-2">
         {profils.length === 0 && <p className="col-span-full text-sm text-slate-400 text-center py-4">Aucun profil pour l'instant.</p>}
         {profils.map((p) => (
-          <div key={p.utilisateur_id} className="flex items-center gap-3 bg-gradient-to-br from-teal-light to-[#f0fffd] rounded-2xl p-2.5 border-2 border-teal/20">
-            <span className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#00a896] flex items-center justify-center text-white flex-shrink-0">
+          <div key={p.utilisateur_id} className="flex items-center gap-3 bg-gradient-to-br from-teal-light to-[#fff8f0] rounded-2xl p-2.5 border-2 border-teal/20">
+            <span className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#fe4701] flex items-center justify-center text-white flex-shrink-0">
               <GraduationCap size={17} />
             </span>
             <div className="flex-1">
@@ -113,7 +113,7 @@ export function Coloc() {
                 {p.universite} · {p.filiere}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-teal to-[#00a896] text-white text-[10px] font-bold font-heading rounded-full px-2.5 py-1 whitespace-nowrap">
+            <div className="bg-gradient-to-br from-teal to-[#fe4701] text-white text-[10px] font-bold font-heading rounded-full px-2.5 py-1 whitespace-nowrap">
               {p.budget.toLocaleString('fr-FR')} F
             </div>
           </div>

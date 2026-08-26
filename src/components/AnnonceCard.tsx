@@ -68,7 +68,7 @@ export function AnnonceCard({ annonce }: { annonce: Annonce }) {
         </div>
         <div
           className={`absolute bottom-2 left-2 text-[10px] font-extrabold font-heading px-2.5 py-1.5 rounded-full text-white shadow ${
-            annonce.statut === 'loue' ? 'bg-red-600' : 'bg-teal'
+            annonce.statut === 'loue' ? 'bg-red-600' : 'bg-green-600'
           }`}
         >
           {annonce.statut === 'loue' ? `🔴 Déjà ${libellePris(annonce.type).toLowerCase()}` : '🟢 Disponible'}

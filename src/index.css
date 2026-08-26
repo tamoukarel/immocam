@@ -4,8 +4,12 @@
   --color-navy: #0b3b91;
   --color-brand-blue: #1e88e5;
   --color-blue-light: #e8f4fd;
-  --color-teal: #00c2a8;
-  --color-teal-light: #e0f8f5;
+  /* Accent de marque : orange du logo (le nom "teal" est un reliquat de
+     l'ancienne palette turquoise, gardé pour ne pas renommer toutes les
+     classes du projet — seule la valeur a changé). Le vert de statut
+     "Disponible" est un token à part, volontairement non lié à celui-ci. */
+  --color-teal: #fe7a01;
+  --color-teal-light: #fff1e0;
   --color-gold: #f4b400;
   --color-bg: #f0f4ff;
   --font-heading:

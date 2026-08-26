@@ -68,7 +68,7 @@ export function MesAnnonces() {
                 {a.pieces} · {a.quartier}
               </div>
               <div className="text-[11px] text-slate-500">
-                📍 {a.ville} · {a.statut === 'loue' ? <span className="text-red-600 font-semibold">{libellePris(a.type)}</span> : <span className="text-teal font-semibold">Disponible</span>}
+                📍 {a.ville} · {a.statut === 'loue' ? <span className="text-red-600 font-semibold">{libellePris(a.type)}</span> : <span className="text-green-600 font-semibold">Disponible</span>}
               </div>
               <div className="font-heading font-extrabold text-sm text-brand-blue">
                 {a.prix.toLocaleString('fr-FR')} FCFA{a.unite}
@@ -80,7 +80,7 @@ export function MesAnnonces() {
                 title={a.statut === 'loue' ? 'Remettre en disponible' : `Marquer comme ${libellePris(a.type).toLowerCase()}e`}
                 className={
                   a.statut === 'loue'
-                    ? 'bg-teal-light border-2 border-teal text-teal rounded-lg p-2'
+                    ? 'bg-green-50 border-2 border-green-600 text-green-600 rounded-lg p-2'
                     : 'bg-amber-50 border-2 border-amber-200 text-amber-700 rounded-lg p-2'
                 }
               >

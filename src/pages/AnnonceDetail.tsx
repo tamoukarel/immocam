@@ -173,7 +173,7 @@ export function AnnonceDetail() {
         <div className="flex items-center gap-2 mb-2">
           <span
             className={`text-[10px] font-bold font-heading px-2.5 py-1 rounded-full ${
-              annonce.statut === 'loue' ? 'bg-red-50 text-red-600' : 'bg-teal-light text-teal'
+              annonce.statut === 'loue' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
             }`}
           >
             {annonce.statut === 'loue' ? `🔴 Déjà ${libellePris(annonce.type).toLowerCase()}` : '🟢 Disponible'}

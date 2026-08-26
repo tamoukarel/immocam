@@ -37,7 +37,7 @@ export function CourteDuree() {
         ))}
       </div>
 
-      <div className="mx-5 mb-6 bg-gradient-to-br from-teal to-[#00a896] rounded-2xl px-4 py-3.5 flex items-center gap-2.5 shadow">
+      <div className="mx-5 mb-6 bg-gradient-to-br from-teal to-[#fe4701] rounded-2xl px-4 py-3.5 flex items-center gap-2.5 shadow">
         <Rocket size={20} className="text-white flex-shrink-0" />
         <div className="font-heading font-extrabold text-sm text-white">Publie ton bien en courte durée depuis "Publier"</div>
       </div>
