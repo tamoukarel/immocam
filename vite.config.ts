@@ -34,7 +34,10 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#F0F4FF',
         theme_color: '#0B3B91',
-        icons: [{ src: '/icons.svg', sizes: 'any', type: 'image/svg+xml' }],
+        icons: [
+          { src: '/logo-icon.png', sizes: '450x450', type: 'image/png' },
+          { src: '/logo-icon.png', sizes: '450x450', type: 'image/png', purpose: 'maskable' },
+        ],
       },
     }),
   ],

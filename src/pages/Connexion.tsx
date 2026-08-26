@@ -49,9 +49,12 @@ export function Connexion() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-6">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border-2 border-slate-100 p-8">
-        <div className="font-heading font-extrabold text-navy text-lg mb-8">
-          <strong>immo</strong>
-          <span className="text-brand-blue">cam</span>
+        <div className="flex items-center gap-2 mb-8">
+          <img src="/logo-icon.png" alt="ImmoCam" className="w-9 h-9" />
+          <div className="font-heading font-extrabold text-lg">
+            <span className="bg-gradient-to-br from-navy to-brand-blue bg-clip-text text-transparent">immo</span>
+            <span className="bg-gradient-to-br from-orange-600 to-amber-400 bg-clip-text text-transparent">cam</span>
+          </div>
         </div>
         <h1 className="font-heading text-xl font-bold text-navy mb-1.5">Connexion</h1>
         <p className="text-xs text-slate-500 mb-6">
