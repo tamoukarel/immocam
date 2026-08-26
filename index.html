@@ -21,9 +21,27 @@
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <title>ImmoCam — Immobilier Cameroun</title>
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        background: #f0f4ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.25s ease;
+      }
+      #splash img {
+        width: 88px;
+        height: 88px;
+      }
+    </style>
   </head>
   <body>
+    <div id="splash"><img src="/logo-icon.png" alt="" /></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

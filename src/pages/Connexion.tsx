@@ -1,7 +1,20 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useLang } from '../lib/LangContext'
+
+// Clé publique du widget Turnstile "ImmoCam" (safe à embarquer côté client,
+// la clé secrète correspondante vit uniquement côté config Supabase Auth).
+const TURNSTILE_SITE_KEY = '0x4AAAAAAEcwLLkjrr45tm-o'
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void }) => string
+      reset: (widgetId?: string) => void
+    }
+  }
+}
 
 export function Connexion() {
   const navigate = useNavigate()
@@ -14,6 +27,31 @@ export function Connexion() {
   const [etape, setEtape] = useState<'telephone' | 'code'>('telephone')
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const captchaRef = useRef<HTMLDivElement>(null)
+  const widgetId = useRef<string | undefined>(undefined)
+
+  // Protège l'envoi d'OTP contre le spam/bot (le SMS coûte de l'argent à
+  // chaque appel) : Supabase Auth exige ce token avant d'accepter signInWithOtp.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    let annule = false
+    function monter() {
+      if (annule || !captchaRef.current || widgetId.current) return
+      if (!window.turnstile) {
+        setTimeout(monter, 200)
+        return
+      }
+      widgetId.current = window.turnstile.render(captchaRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: setCaptchaToken,
+      })
+    }
+    monter()
+    return () => {
+      annule = true
+    }
+  }, [])
 
   function versE164(t: string) {
     const chiffres = t.replace(/\D/g, '')
@@ -25,10 +63,12 @@ export function Connexion() {
     if (!supabase) return
     setErreur(null)
     setEnvoi(true)
-    const { error } = await supabase.auth.signInWithOtp({ phone: versE164(telephone) })
+    const { error } = await supabase.auth.signInWithOtp({ phone: versE164(telephone), options: { captchaToken } })
     setEnvoi(false)
     if (error) {
       setErreur(t('connexion.erreurEnvoi'))
+      window.turnstile?.reset(widgetId.current)
+      setCaptchaToken('')
       return
     }
     setEtape('code')
@@ -83,8 +123,9 @@ export function Connexion() {
                 className="fi disabled:bg-slate-100"
               />
             </div>
+            <div ref={captchaRef} className="flex justify-center" />
             {erreur && <p className="text-sm text-red-600">{erreur}</p>}
-            <button type="submit" disabled={!isSupabaseConfigured || envoi} className="btn-next w-full disabled:opacity-50">
+            <button type="submit" disabled={!isSupabaseConfigured || envoi || !captchaToken} className="btn-next w-full disabled:opacity-50">
               {envoi ? t('connexion.envoi') : t('connexion.recevoirUnCode')}
             </button>
           </form>
