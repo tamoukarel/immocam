@@ -136,7 +136,7 @@ export const TRADUCTIONS: Record<string, { fr: string; en: string }> = {
   'publier.comptePhotos': { fr: '📸 {n} / {total} photos', en: '📸 {n} / {total} photos' },
   'publier.astucePhotos': { fr: 'Les annonces avec photos reçoivent 3× plus de contacts !', en: 'Listings with photos get 3× more contacts!' },
   'publier.champ.video': { fr: 'Vidéo', en: 'Video' },
-  'publier.videoOptionnel': { fr: 'optionnel, max. 10 Mo', en: 'optional, max. 10 MB' },
+  'publier.videoOptionnel': { fr: 'optionnel, max. 15 Mo', en: 'optional, max. 15 MB' },
   'publier.ajouterVideo': { fr: 'Ajouter une vidéo de visite', en: 'Add a walkthrough video' },
   'publier.astuceVideo': { fr: 'Une courte vidéo inspire plus confiance que des photos seules', en: 'A short video builds more trust than photos alone' },
   'publier.suivantContact': { fr: 'Suivant → Contact', en: 'Next → Contact' },
@@ -152,7 +152,7 @@ export const TRADUCTIONS: Record<string, { fr: string; en: string }> = {
   'publier.succes': { fr: '🚀 Annonce publiée !', en: '🚀 Listing posted!' },
   'publier.echec': { fr: '⚠️ Échec de la publication, réessaie', en: '⚠️ Failed to post, try again' },
   'publier.erreurQuartierPrix': { fr: '⚠️ Renseigne le quartier et un prix valide', en: '⚠️ Fill in the neighborhood and a valid price' },
-  'publier.erreurVideoLourde': { fr: '⚠️ Vidéo trop lourde (max 10 Mo)', en: '⚠️ Video too large (max 10 MB)' },
+  'publier.erreurVideoLourde': { fr: '⚠️ Vidéo trop lourde (max 15 Mo)', en: '⚠️ Video too large (max 15 MB)' },
   'publier.erreurMaxPhotos': { fr: 'Maximum {n} photos', en: 'Maximum {n} photos' },
   'publier.erreurWhatsapp': { fr: '⚠️ Numéro WhatsApp invalide', en: '⚠️ Invalid WhatsApp number' },
 

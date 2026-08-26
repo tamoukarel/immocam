@@ -43,13 +43,14 @@ export function urlPhoto(chemin: string): string {
   return supabase!.storage.from(BUCKET).getPublicUrl(chemin).data.publicUrl
 }
 
-export const MAX_VIDEO_OCTETS = 10 * 1024 * 1024
+// Aligné sur le file_size_limit du bucket Storage "annonces" (voir schema.sql)
+export const MAX_VIDEO_OCTETS = 15 * 1024 * 1024
 
 // Pas de compression côté client pour la vidéo (contrairement aux photos) :
-// on se contente de plafonner la taille à 10 Mo avant l'envoi, la
+// on se contente de plafonner la taille à 15 Mo avant l'envoi, la
 // compression vidéo dans le navigateur est trop coûteuse/peu fiable.
 export async function televerserVideo(fichier: File, userId: string): Promise<string> {
-  if (fichier.size > MAX_VIDEO_OCTETS) throw new Error('Vidéo trop lourde (max 10 Mo)')
+  if (fichier.size > MAX_VIDEO_OCTETS) throw new Error('Vidéo trop lourde (max 15 Mo)')
   const chemin = `${userId}/${Date.now()}-${fichier.name}`
   const { error } = await supabase!.storage.from(BUCKET).upload(chemin, fichier, { contentType: fichier.type || 'video/mp4' })
   if (error) throw error
