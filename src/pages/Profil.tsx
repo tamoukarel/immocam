@@ -6,20 +6,23 @@ import { useAuth } from '../lib/AuthContext'
 import { NUMERO_SUPPORT, lienWhatsapp } from '../lib/whatsapp'
 import { urlPhoto } from '../lib/photos'
 import { useLang } from '../lib/LangContext'
+import { compterNouvellesCorrespondances } from '../lib/alertes'
+import { Pastille } from '../components/Pastille'
 
 export function Profil() {
   const { profil } = useAuth()
   const navigate = useNavigate()
   const { t } = useLang()
   const [stats, setStats] = useState({ annonces: 0, favoris: 0, messages: 0 })
+  const [nouvellesAlertes, setNouvellesAlertes] = useState(0)
 
   const MENU = [
-    { to: '/profil/mes-annonces', icone: Home, label: t('profil.menu.mesAnnonces') },
-    { to: '/profil/favoris', icone: Heart, label: t('profil.menu.favoris') },
-    { to: '/profil/messages', icone: MessageCircle, label: t('profil.menu.messages') },
-    { to: '/profil/alertes', icone: Bell, label: t('profil.menu.alertes') },
-    { to: '/profil/parametres', icone: Settings, label: t('profil.menu.parametres') },
-  ] as const
+    { to: '/profil/mes-annonces', icone: Home, label: t('profil.menu.mesAnnonces'), badge: 0 },
+    { to: '/profil/favoris', icone: Heart, label: t('profil.menu.favoris'), badge: 0 },
+    { to: '/profil/messages', icone: MessageCircle, label: t('profil.menu.messages'), badge: 0 },
+    { to: '/profil/alertes', icone: Bell, label: t('profil.menu.alertes'), badge: nouvellesAlertes },
+    { to: '/profil/parametres', icone: Settings, label: t('profil.menu.parametres'), badge: 0 },
+  ]
 
   useEffect(() => {
     if (!supabase || !profil) return
@@ -28,6 +31,7 @@ export function Profil() {
       supabase.from('favoris').select('id', { count: 'exact', head: true }).eq('utilisateur_id', profil.id),
       supabase.from('demandes_contact').select('id', { count: 'exact', head: true }).eq('proprietaire_id', profil.id),
     ]).then(([a, f, m]) => setStats({ annonces: a.count ?? 0, favoris: f.count ?? 0, messages: m.count ?? 0 }))
+    compterNouvellesCorrespondances(profil.id).then(setNouvellesAlertes)
   }, [profil])
 
   async function seDeconnecter() {
@@ -56,10 +60,11 @@ export function Profil() {
 
         <div className="px-5 pt-5 pb-2.5 font-heading font-extrabold text-xs text-navy uppercase tracking-wide">{t('profil.monCompte')}</div>
         <div className="mx-5 bg-white rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm">
-          {MENU.map(({ to, icone: Icone, label }) => (
+          {MENU.map(({ to, icone: Icone, label, badge }) => (
             <Link key={to} to={to} className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 last:border-0 hover:bg-blue-light">
-              <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-navy via-brand-blue to-teal flex items-center justify-center text-white flex-shrink-0">
+              <span className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-navy via-brand-blue to-teal flex items-center justify-center text-white flex-shrink-0">
                 <Icone size={16} />
+                <Pastille n={badge} />
               </span>
               <span className="flex-1 text-sm">{label}</span>
               <span className="text-brand-blue text-lg">›</span>

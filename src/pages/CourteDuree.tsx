@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Rocket } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import type { Annonce } from '../lib/types'
+import type { AnnonceAvecProprietaire } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
 import { useLang } from '../lib/LangContext'
 
 export function CourteDuree() {
   const { t } = useLang()
-  const [annonces, setAnnonces] = useState<Annonce[]>([])
+  const [annonces, setAnnonces] = useState<AnnonceAvecProprietaire[]>([])
 
   useEffect(() => {
     if (!supabase) return
     supabase
       .from('annonces')
-      .select('*')
+      .select('*, profils(est_verifie)')
       .eq('est_courte_duree', true)
       .eq('statut', 'dispo')
-      .then(({ data }) => setAnnonces((data as Annonce[]) ?? []))
+      .then(({ data }) => setAnnonces((data as AnnonceAvecProprietaire[]) ?? []))
   }, [])
 
   return (

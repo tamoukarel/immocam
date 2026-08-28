@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import type { Annonce } from '../lib/types'
+import type { AnnonceAvecProprietaire } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
 import { PageHeader } from '../components/PageHeader'
 import { useLang } from '../lib/LangContext'
@@ -9,15 +9,15 @@ import { useLang } from '../lib/LangContext'
 export function Favoris() {
   const { profil } = useAuth()
   const { t } = useLang()
-  const [annonces, setAnnonces] = useState<Annonce[] | null>(null)
+  const [annonces, setAnnonces] = useState<AnnonceAvecProprietaire[] | null>(null)
 
   useEffect(() => {
     if (!supabase || !profil) return
     supabase
       .from('favoris')
-      .select('annonces(*)')
+      .select('annonces(*, profils(est_verifie))')
       .eq('utilisateur_id', profil.id)
-      .then(({ data }) => setAnnonces(((data ?? []) as unknown as { annonces: Annonce }[]).map((f) => f.annonces)))
+      .then(({ data }) => setAnnonces(((data ?? []) as unknown as { annonces: AnnonceAvecProprietaire }[]).map((f) => f.annonces)))
   }, [profil])
 
   return (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, GraduationCap, Wallet, Palmtree, Home as HomeIcon, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import type { Annonce } from '../lib/types'
+import type { AnnonceAvecProprietaire } from '../lib/types'
 import { VILLES } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
 import { useLang } from '../lib/LangContext'
@@ -39,18 +39,18 @@ export function Accueil() {
   const { t } = useLang()
   const [recherche, setRecherche] = useState('')
   const [ville, setVille] = useState<string>(VILLES[0])
-  const [annonces, setAnnonces] = useState<Annonce[]>([])
+  const [annonces, setAnnonces] = useState<AnnonceAvecProprietaire[]>([])
 
   useEffect(() => {
     if (!supabase) return
     supabase
       .from('annonces')
-      .select('*')
+      .select('*, profils(est_verifie)')
       .eq('ville', ville)
       .eq('statut', 'dispo')
       .order('created_at', { ascending: false })
       .limit(4)
-      .then(({ data }) => setAnnonces((data as Annonce[]) ?? []))
+      .then(({ data }) => setAnnonces((data as AnnonceAvecProprietaire[]) ?? []))
   }, [ville])
 
   function chercher() {

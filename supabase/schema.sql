@@ -24,6 +24,11 @@
 -- (colonnes en `add column if not exists`, fonction en `create or replace`,
 -- bucket en `on conflict do update`). Pense aussi à activer un compte admin :
 --   update profils set est_admin = true where id = '...';
+-- Si `profils` existe déjà sans `est_verifie`, ou `alertes_prix` sans
+-- `derniere_vue_at` :
+--   alter table profils add column if not exists est_verifie boolean not null default false;
+--   alter table alertes_prix add column if not exists derniere_vue_at timestamptz not null default now();
+--   revoke update (est_admin, est_verifie) on table profils from authenticated, anon;
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -43,6 +48,10 @@ create table profils (
   -- l'instant). Pas d'interface d'admin pour changer ça : à activer
   -- manuellement via `update profils set est_admin = true where id = ...`.
   est_admin boolean not null default false,
+  -- Badge "profil vérifié" affiché sur les annonces. Posé manuellement par
+  -- Karel via le Table Editor Supabase après vérification (pièce d'identité
+  -- + justificatif de propriété envoyés par WhatsApp), jamais automatique.
+  est_verifie boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -132,7 +141,11 @@ create table alertes_prix (
   ville text not null,
   budget_max integer not null check (budget_max > 0),
   type type_annonce not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Horodatage de la dernière fois où l'utilisateur a cliqué "Voir" sur
+  -- cette alerte. Sert à compter les correspondances "nouvelles depuis ta
+  -- dernière visite" (created_at > derniere_vue_at), distinct du total.
+  derniere_vue_at timestamptz not null default now()
 );
 
 -- Annuaire public "je cherche un·e coloc" (module Colocation étudiants) —
@@ -182,6 +195,15 @@ create policy "creer son propre profil" on profils
   for insert with check (id = auth.uid());
 create policy "modifier son propre profil" on profils
   for update using (id = auth.uid()) with check (id = auth.uid());
+
+-- Sécurité : la policy ci-dessus est volontairement large en row-level
+-- (l'utilisateur doit pouvoir modifier nom/photo lui-même), mais RLS ne
+-- restreint pas les colonnes modifiables au sein d'une ligne autorisée.
+-- Sans ceci, n'importe quel utilisateur connecté pourrait s'auto-promouvoir
+-- admin via `update profils set est_admin = true where id = auth.uid()`.
+-- Ces colonnes ne sont modifiables que par le rôle "service_role"
+-- (dashboard Supabase / futur back-office), jamais par l'utilisateur lui-même.
+revoke update (est_admin, est_verifie) on table profils from authenticated, anon;
 
 -- Téléphone : jamais public. Visible seulement par son propriétaire, et par
 -- le propriétaire d'une annonce à qui ce profil a envoyé une demande de

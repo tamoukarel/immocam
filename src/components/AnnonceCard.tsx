@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Heart, MapPin, MessageCircle, Home, Share2, Video } from 'lucide-react'
-import { libellePris, libellePiece, type Annonce } from '../lib/types'
+import { Heart, MapPin, MessageCircle, Home, Share2, Video, BadgeCheck } from 'lucide-react'
+import { libellePris, libellePiece, type AnnonceAvecProprietaire } from '../lib/types'
 import { urlPhoto } from '../lib/photos'
 import { contacterProprietaire } from '../lib/whatsapp'
 import { useAuth } from '../lib/AuthContext'
@@ -9,7 +9,7 @@ import { useToast } from '../lib/ToastContext'
 import { ilYA } from '../lib/dates'
 import { useLang } from '../lib/LangContext'
 
-export function AnnonceCard({ annonce }: { annonce: Annonce }) {
+export function AnnonceCard({ annonce }: { annonce: AnnonceAvecProprietaire }) {
   const { profil } = useAuth()
   const { favoris, basculer, connecte } = useFavoris()
   const afficherToast = useToast()
@@ -101,8 +101,9 @@ export function AnnonceCard({ annonce }: { annonce: Annonce }) {
         <div className="font-heading font-extrabold text-base text-navy">
           {annonce.prix.toLocaleString('fr-FR')} FCFA<small className="text-slate-400 font-medium text-[10px]"> {annonce.unite}</small>
         </div>
-        <div className="font-semibold text-sm mt-0.5">
+        <div className="font-semibold text-sm mt-0.5 flex items-center gap-1">
           {libellePiece(annonce.pieces, lang)} · {annonce.quartier}
+          {annonce.profils?.est_verifie && <BadgeCheck size={14} className="text-teal flex-shrink-0" aria-label={t('carte.profilVerifie')} />}
         </div>
         {annonce.avance_mois && (
           <div className="text-[10px] text-amber-700 font-medium mt-1">{t('carte.avance', { n: annonce.avance_mois })}</div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Trash2, Eye } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
@@ -9,10 +10,12 @@ import { useLang } from '../lib/LangContext'
 
 export function Alertes() {
   const { profil } = useAuth()
+  const navigate = useNavigate()
   const afficherToast = useToast()
   const { t } = useLang()
   const [alertes, setAlertes] = useState<AlertePrix[]>([])
   const [correspondances, setCorrespondances] = useState<Record<string, number>>({})
+  const [nouvelles, setNouvelles] = useState<Record<string, number>>({})
   const [ville, setVille] = useState<string>(VILLES[0])
   const [budget, setBudget] = useState('')
   const [type, setType] = useState<TypeAnnonce>('location')
@@ -23,18 +26,38 @@ export function Alertes() {
     const liste = (data as AlertePrix[]) ?? []
     setAlertes(liste)
     const compteurs: Record<string, number> = {}
+    const compteursNouvelles: Record<string, number> = {}
     await Promise.all(
       liste.map(async (a) => {
-        const { count } = await supabase!
-          .from('annonces')
-          .select('id', { count: 'exact', head: true })
-          .eq('ville', a.ville)
-          .eq('type', a.type)
-          .lte('prix', a.budget_max)
-        compteurs[a.id] = count ?? 0
+        // Deux requêtes construites indépendamment (pas de réutilisation
+        // d'un même query builder) : les méthodes de filtre de supabase-js
+        // mutent et renvoient `this`, réutiliser une base partagée donnerait
+        // deux fois le même résultat filtré.
+        const [{ count: total }, { count: recentes }] = await Promise.all([
+          supabase!
+            .from('annonces')
+            .select('id', { count: 'exact', head: true })
+            .eq('ville', a.ville)
+            .eq('type', a.type)
+            .lte('prix', a.budget_max)
+            .eq('statut', 'dispo')
+            .neq('proprietaire_id', profil.id),
+          supabase!
+            .from('annonces')
+            .select('id', { count: 'exact', head: true })
+            .eq('ville', a.ville)
+            .eq('type', a.type)
+            .lte('prix', a.budget_max)
+            .eq('statut', 'dispo')
+            .neq('proprietaire_id', profil.id)
+            .gt('created_at', a.derniere_vue_at),
+        ])
+        compteurs[a.id] = total ?? 0
+        compteursNouvelles[a.id] = recentes ?? 0
       }),
     )
     setCorrespondances(compteurs)
+    setNouvelles(compteursNouvelles)
   }
 
   useEffect(() => {
@@ -57,6 +80,13 @@ export function Alertes() {
   async function supprimer(id: string) {
     await supabase?.from('alertes_prix').delete().eq('id', id)
     afficherToast(t('alertes.supprimee'))
+    charger()
+  }
+
+  async function voir(a: AlertePrix) {
+    await supabase?.from('alertes_prix').update({ derniere_vue_at: new Date().toISOString() }).eq('id', a.id)
+    const p = new URLSearchParams({ ville: a.ville, type: a.type, prixMax: String(a.budget_max) })
+    navigate(`/annonces?${p.toString()}`)
     charger()
   }
 
@@ -110,10 +140,20 @@ export function Alertes() {
                     ? t('alertes.correspondent', { n: correspondances[a.id], s: correspondances[a.id] > 1 ? 's' : '' })
                     : t('alertes.aucunBien')}
                 </div>
+                {nouvelles[a.id] > 0 && (
+                  <div className="text-[10px] font-bold mt-0.5 text-teal">
+                    {t('alertes.nouvelles', { n: nouvelles[a.id], s: nouvelles[a.id] > 1 ? 's' : '' })}
+                  </div>
+                )}
               </div>
-              <button onClick={() => supprimer(a.id)} className="bg-red-50 border-2 border-red-100 text-red-600 rounded-lg p-2 flex-shrink-0">
-                <Trash2 size={14} />
-              </button>
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <button onClick={() => voir(a)} className="bg-blue-light border-2 border-brand-blue text-brand-blue rounded-lg p-2 flex items-center justify-center">
+                  <Eye size={14} />
+                </button>
+                <button onClick={() => supprimer(a.id)} className="bg-red-50 border-2 border-red-100 text-red-600 rounded-lg p-2 flex items-center justify-center">
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

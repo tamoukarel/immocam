@@ -37,6 +37,15 @@ export interface Annonce {
   created_at: string
 }
 
+export interface ProfilPublic {
+  nom: string | null
+  photo: string | null
+  created_at: string
+  est_verifie: boolean
+}
+
+export type AnnonceAvecProprietaire = Annonce & { profils: ProfilPublic | null }
+
 export interface ProfilColoc {
   utilisateur_id: string
   universite: string
@@ -53,6 +62,7 @@ export interface AlertePrix {
   budget_max: number
   type: TypeAnnonce
   created_at: string
+  derniere_vue_at: string
 }
 
 export interface DemandeContact {

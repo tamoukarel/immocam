@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Annonce } from '../lib/types'
+import type { AnnonceAvecProprietaire } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
 import { useLang } from '../lib/LangContext'
 
@@ -14,16 +14,16 @@ const TRANCHES = [
 export function Budget() {
   const { t } = useLang()
   const [budget, setBudget] = useState(150000)
-  const [locations, setLocations] = useState<Annonce[]>([])
+  const [locations, setLocations] = useState<AnnonceAvecProprietaire[]>([])
 
   useEffect(() => {
     if (!supabase) return
     supabase
       .from('annonces')
-      .select('*')
+      .select('*, profils(est_verifie)')
       .eq('type', 'location')
       .eq('statut', 'dispo')
-      .then(({ data }) => setLocations((data as Annonce[]) ?? []))
+      .then(({ data }) => setLocations((data as AnnonceAvecProprietaire[]) ?? []))
   }, [])
 
   const resultats = locations.filter((l) => l.prix <= budget)

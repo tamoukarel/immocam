@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { MessageCircle, MapPin, Home, Flag, Map, Clock, Wallet, Share2, Eye, Building2, User, X, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MessageCircle, MapPin, Home, Flag, Map, Clock, Wallet, Share2, Eye, Building2, User, X, Heart, ChevronLeft, ChevronRight, BadgeCheck, Info } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { libelleNiveau, libellePris, libellePiece, libelleDistance, type Annonce } from '../lib/types'
+import { libelleNiveau, libellePris, libellePiece, libelleDistance, type AnnonceAvecProprietaire } from '../lib/types'
 import { urlPhoto } from '../lib/photos'
 import { contacterProprietaire } from '../lib/whatsapp'
 import { useAuth } from '../lib/AuthContext'
@@ -15,8 +15,6 @@ import { PageHeader } from '../components/PageHeader'
 function lienCarte(quartier: string, ville: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${quartier}, ${ville}, Cameroun`)}`
 }
-
-type AnnonceAvecProprietaire = Annonce & { profils: { nom: string | null; photo: string | null; created_at: string } | null }
 
 export function AnnonceDetail() {
   const { id } = useParams()
@@ -31,18 +29,30 @@ export function AnnonceDetail() {
   const [modaleSignalement, setModaleSignalement] = useState(false)
   const [motifSignalement, setMotifSignalement] = useState('')
   const [envoiSignalement, setEnvoiSignalement] = useState(false)
+  const [nbAnnoncesProprio, setNbAnnoncesProprio] = useState<number | null>(null)
+  const [explicationVerifie, setExplicationVerifie] = useState(false)
   const estFavori = annonce ? favoris.has(annonce.id) : false
 
   useEffect(() => {
     if (!supabase || !id) return
     supabase
       .from('annonces')
-      .select('*, profils(nom, photo, created_at)')
+      .select('*, profils(nom, photo, created_at, est_verifie)')
       .eq('id', id)
       .single()
       .then(({ data }) => setAnnonce((data as AnnonceAvecProprietaire) ?? null))
     supabase.rpc('increment_vues', { p_annonce_id: id })
   }, [id])
+
+  useEffect(() => {
+    if (!supabase || !annonce) return
+    supabase
+      .from('annonces')
+      .select('id', { count: 'exact', head: true })
+      .eq('proprietaire_id', annonce.proprietaire_id)
+      .eq('statut', 'dispo')
+      .then(({ count }) => setNbAnnoncesProprio(count ?? 0))
+  }, [annonce?.proprietaire_id])
 
   // Navigation clavier dans la visionneuse plein écran.
   useEffect(() => {
@@ -229,14 +239,37 @@ export function AnnonceDetail() {
         {annonce.description && <p className="text-sm text-slate-600 leading-relaxed mb-4">{annonce.description}</p>}
 
         {annonce.profils && (
-          <div className="flex items-center gap-2.5 bg-bg rounded-xl p-3 mb-4">
-            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-navy via-brand-blue to-teal flex items-center justify-center text-white flex-shrink-0 overflow-hidden">
-              {annonce.profils.photo ? <img src={urlPhoto(annonce.profils.photo)} className="w-full h-full object-cover" /> : <User size={16} />}
-            </span>
-            <div className="text-xs">
-              <div className="font-heading font-bold text-navy">{annonce.profils.nom || t('detail.utilisateurAnonyme')}</div>
-              <div className="text-slate-500">{t('detail.membreDepuis', { temps: membreDepuis(annonce.profils.created_at, lang) })}</div>
+          <div className="bg-bg rounded-xl p-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-full bg-gradient-to-br from-navy via-brand-blue to-teal flex items-center justify-center text-white flex-shrink-0 overflow-hidden">
+                {annonce.profils.photo ? <img src={urlPhoto(annonce.profils.photo)} className="w-full h-full object-cover" /> : <User size={16} />}
+              </span>
+              <div className="text-xs">
+                <div className="font-heading font-bold text-navy flex items-center gap-1">
+                  {annonce.profils.nom || t('detail.utilisateurAnonyme')}
+                  {annonce.profils.est_verifie && <BadgeCheck size={14} className="text-teal flex-shrink-0" aria-label={t('carte.profilVerifie')} />}
+                </div>
+                <div className="text-slate-500">
+                  {[
+                    nbAnnoncesProprio !== null ? t('detail.nbAnnonces', { n: nbAnnoncesProprio, s: nbAnnoncesProprio > 1 ? 's' : '' }) : null,
+                    t('detail.membreDepuis', { temps: membreDepuis(annonce.profils.created_at, lang) }),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </div>
             </div>
+            {annonce.profils.est_verifie && (
+              <div className="mt-2 pt-2 border-t border-slate-200">
+                <button
+                  onClick={() => setExplicationVerifie((v) => !v)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-teal"
+                >
+                  <Info size={12} /> {t('detail.profilVerifie')}
+                </button>
+                {explicationVerifie && <p className="text-[11px] text-slate-500 mt-1">{t('detail.profilVerifieExplication')}</p>}
+              </div>
+            )}
           </div>
         )}
 

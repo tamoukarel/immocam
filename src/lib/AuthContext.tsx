@@ -8,6 +8,7 @@ export interface Profil {
   nom: string | null
   photo: string | null
   estAdmin: boolean
+  estVerifie: boolean
 }
 
 interface AuthState {
@@ -31,10 +32,11 @@ function versProfil(data: {
   nom: string | null
   photo: string | null
   est_admin: boolean
+  est_verifie: boolean
   profils_prive: { telephone: string } | { telephone: string }[] | null
 }): Profil {
   const prive = Array.isArray(data.profils_prive) ? data.profils_prive[0] : data.profils_prive
-  return { id: data.id, nom: data.nom, photo: data.photo, estAdmin: data.est_admin, telephone: prive?.telephone ?? '' }
+  return { id: data.id, nom: data.nom, photo: data.photo, estAdmin: data.est_admin, estVerifie: data.est_verifie, telephone: prive?.telephone ?? '' }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // on le rejoint ici puisqu'on lit son propre profil.
       const { data, error } = await supabase!
         .from('profils')
-        .select('id, nom, photo, est_admin, profils_prive(telephone)')
+        .select('id, nom, photo, est_admin, est_verifie, profils_prive(telephone)')
         .eq('id', session!.user.id)
         .single()
 
@@ -92,7 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { data: nouveauProfil } = await supabase!.from('profils').insert({ id: session!.user.id }).select('id, nom, photo, est_admin').single()
+      const { data: nouveauProfil } = await supabase!
+        .from('profils')
+        .insert({ id: session!.user.id })
+        .select('id, nom, photo, est_admin, est_verifie')
+        .single()
 
       if (nouveauProfil) {
         await supabase!.from('profils_prive').insert({ id: session!.user.id, telephone: session!.user.phone ?? '' })
@@ -106,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 nom: nouveauProfil.nom,
                 photo: nouveauProfil.photo,
                 estAdmin: nouveauProfil.est_admin,
+                estVerifie: nouveauProfil.est_verifie,
                 telephone: session!.user.phone ?? '',
               }
             : null,
