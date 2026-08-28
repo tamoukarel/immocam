@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag } from 'lucide-react'
+import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag, BadgeCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { NUMERO_SUPPORT, lienWhatsapp } from '../lib/whatsapp'
@@ -88,11 +88,18 @@ export function Profil() {
           <>
             <div className="px-5 pt-5 pb-2.5 font-heading font-extrabold text-xs text-red-500 uppercase tracking-wide">{t('profil.administration')}</div>
             <div className="mx-5 bg-white rounded-2xl border-2 border-red-100 overflow-hidden shadow-sm">
-              <Link to="/profil/signalements" className="flex items-center gap-3 px-4 py-3.5 hover:bg-red-50">
+              <Link to="/profil/signalements" className="flex items-center gap-3 px-4 py-3.5 border-b border-red-100 hover:bg-red-50">
                 <span className="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center text-white flex-shrink-0">
                   <Flag size={16} />
                 </span>
                 <span className="flex-1 text-sm">{t('profil.signalements')}</span>
+                <span className="text-brand-blue text-lg">›</span>
+              </Link>
+              <Link to="/profil/verification-profils" className="flex items-center gap-3 px-4 py-3.5 hover:bg-red-50">
+                <span className="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center text-white flex-shrink-0">
+                  <BadgeCheck size={16} />
+                </span>
+                <span className="flex-1 text-sm">{t('profil.verificationProfils')}</span>
                 <span className="text-brand-blue text-lg">›</span>
               </Link>
             </div>

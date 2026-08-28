@@ -20,6 +20,7 @@ import { Messages } from './pages/Messages'
 import { Alertes } from './pages/Alertes'
 import { Parametres } from './pages/Parametres'
 import { Signalements } from './pages/Signalements'
+import { VerificationProfils } from './pages/VerificationProfils'
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
                 <Route path="alertes" element={<Alertes />} />
                 <Route path="parametres" element={<Parametres />} />
                 <Route path="signalements" element={<Signalements />} />
+                <Route path="verification-profils" element={<VerificationProfils />} />
               </Route>
             </Route>
           </Routes>

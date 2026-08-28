@@ -29,6 +29,10 @@
 --   alter table profils add column if not exists est_verifie boolean not null default false;
 --   alter table alertes_prix add column if not exists derniere_vue_at timestamptz not null default now();
 --   revoke update (est_admin, est_verifie) on table profils from authenticated, anon;
+-- Si le panneau admin /profil/verification-profils n'a pas encore été
+-- déployé sur ce projet (policy "admin lit tous les telephones" et
+-- fonction verifier_profil absentes), rejoue les blocs correspondants plus
+-- bas dans ce fichier.
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -115,6 +119,27 @@ as $$
 $$;
 
 grant execute on function increment_vues(uuid) to anon, authenticated;
+
+-- Bascule le badge "profil vérifié". Le revoke sur profils.est_verifie
+-- (voir plus haut) empêche toute écriture directe depuis le client, même
+-- par un admin : la fonction s'exécute avec les privilèges de son
+-- propriétaire (security definer), et fait elle-même le contrôle est_admin
+-- sur l'appelant avant d'écrire. Utilisée par /profil/verification-profils.
+create or replace function verifier_profil(p_profil_id uuid, p_verifie boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from profils where id = auth.uid() and est_admin) then
+    raise exception 'Non autorisé';
+  end if;
+  update profils set est_verifie = p_verifie where id = p_profil_id;
+end;
+$$;
+
+grant execute on function verifier_profil(uuid, boolean) to authenticated;
 
 create table favoris (
   id uuid primary key default gen_random_uuid(),
@@ -219,6 +244,11 @@ create policy "voir son propre telephone" on profils_prive
   );
 create policy "creer son propre telephone" on profils_prive
   for insert with check (id = auth.uid());
+-- Un admin peut voir le téléphone de n'importe quel profil, pour retrouver
+-- la bonne personne quand elle envoie sa pièce d'identité par WhatsApp
+-- (panneau /profil/verification-profils).
+create policy "admin lit tous les telephones" on profils_prive
+  for select using (exists (select 1 from profils p where p.id = auth.uid() and p.est_admin));
 create policy "modifier son propre telephone" on profils_prive
   for update using (id = auth.uid()) with check (id = auth.uid());
 
