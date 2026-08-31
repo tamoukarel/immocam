@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag, BadgeCheck } from 'lucide-react'
+import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag, BadgeCheck, Building2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { NUMERO_SUPPORT, lienWhatsapp } from '../lib/whatsapp'
 import { urlPhoto } from '../lib/photos'
 import { useLang } from '../lib/LangContext'
 import { compterNouvellesCorrespondances } from '../lib/alertes'
+import { compterEcheancesProches } from '../lib/gestionLocative'
 import { Pastille } from '../components/Pastille'
 
 export function Profil() {
@@ -15,9 +16,11 @@ export function Profil() {
   const { t } = useLang()
   const [stats, setStats] = useState({ annonces: 0, favoris: 0, messages: 0 })
   const [nouvellesAlertes, setNouvellesAlertes] = useState(0)
+  const [echeancesProches, setEcheancesProches] = useState(0)
 
   const MENU = [
     { to: '/profil/mes-annonces', icone: Home, label: t('profil.menu.mesAnnonces'), badge: 0 },
+    { to: '/profil/gestion-locative', icone: Building2, label: t('profil.menu.gestionLocative'), badge: echeancesProches },
     { to: '/profil/favoris', icone: Heart, label: t('profil.menu.favoris'), badge: 0 },
     { to: '/profil/messages', icone: MessageCircle, label: t('profil.menu.messages'), badge: 0 },
     { to: '/profil/alertes', icone: Bell, label: t('profil.menu.alertes'), badge: nouvellesAlertes },
@@ -32,6 +35,7 @@ export function Profil() {
       supabase.from('demandes_contact').select('id', { count: 'exact', head: true }).eq('proprietaire_id', profil.id),
     ]).then(([a, f, m]) => setStats({ annonces: a.count ?? 0, favoris: f.count ?? 0, messages: m.count ?? 0 }))
     compterNouvellesCorrespondances(profil.id).then(setNouvellesAlertes)
+    compterEcheancesProches(profil.id).then(setEcheancesProches)
   }, [profil])
 
   async function seDeconnecter() {

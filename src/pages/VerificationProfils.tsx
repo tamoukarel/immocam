@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, Search, User } from 'lucide-react'
+import { BadgeCheck, Search, User, Building2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useToast } from '../lib/ToastContext'
@@ -12,6 +12,7 @@ interface Proprietaire {
   nom: string | null
   photo: string | null
   est_verifie: boolean
+  est_premium_gestion: boolean
   profils_prive: { telephone: string } | { telephone: string }[] | null
   annonces: { id: string }[]
 }
@@ -27,7 +28,7 @@ export function VerificationProfils() {
     if (!supabase || !profil?.estAdmin) return
     const { data } = await supabase
       .from('profils')
-      .select('id, nom, photo, est_verifie, profils_prive(telephone), annonces!inner(id)')
+      .select('id, nom, photo, est_verifie, est_premium_gestion, profils_prive(telephone), annonces!inner(id)')
       .order('nom')
     setProprietaires((data as unknown as Proprietaire[]) ?? [])
   }
@@ -46,6 +47,17 @@ export function VerificationProfils() {
     }
     setProprietaires((prev) => prev?.map((x) => (x.id === p.id ? { ...x, est_verifie: !p.est_verifie } : x)) ?? null)
     afficherToast(!p.est_verifie ? t('verification.marqueVerifie') : t('verification.marqueNonVerifie'))
+  }
+
+  async function basculerPremium(p: Proprietaire) {
+    if (!supabase) return
+    const { error } = await supabase.rpc('activer_gestion_premium', { p_profil_id: p.id, p_actif: !p.est_premium_gestion })
+    if (error) {
+      afficherToast(t('verification.echec'))
+      return
+    }
+    setProprietaires((prev) => prev?.map((x) => (x.id === p.id ? { ...x, est_premium_gestion: !p.est_premium_gestion } : x)) ?? null)
+    afficherToast(!p.est_premium_gestion ? t('verification.premiumActive') : t('verification.premiumDesactive'))
   }
 
   if (!profil?.estAdmin) {
@@ -96,16 +108,29 @@ export function VerificationProfils() {
                   {p.est_verifie && <BadgeCheck size={14} className="text-teal flex-shrink-0" />}
                 </div>
                 <div className="text-[11px] text-slate-500">{telephone(p) || t('verification.telephoneInconnu')}</div>
-                <div className="text-[10px] text-slate-400">{t('detail.nbAnnonces', { n: p.annonces.length, s: p.annonces.length > 1 ? 's' : '' })}</div>
+                <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                  {t('detail.nbAnnonces', { n: p.annonces.length, s: p.annonces.length > 1 ? 's' : '' })}
+                  {p.est_premium_gestion && <Building2 size={11} className="text-gold" />}
+                </div>
               </div>
-              <button
-                onClick={() => basculer(p)}
-                className={`flex-shrink-0 rounded-full px-3 py-2 text-[11px] font-bold font-heading ${
-                  p.est_verifie ? 'bg-red-50 text-red-600 border-2 border-red-100' : 'bg-teal-light text-teal border-2 border-teal/20'
-                }`}
-              >
-                {p.est_verifie ? t('verification.retirer') : t('verification.verifier')}
-              </button>
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <button
+                  onClick={() => basculer(p)}
+                  className={`rounded-full px-3 py-1.5 text-[10.5px] font-bold font-heading whitespace-nowrap ${
+                    p.est_verifie ? 'bg-red-50 text-red-600 border-2 border-red-100' : 'bg-teal-light text-teal border-2 border-teal/20'
+                  }`}
+                >
+                  {p.est_verifie ? t('verification.retirer') : t('verification.verifier')}
+                </button>
+                <button
+                  onClick={() => basculerPremium(p)}
+                  className={`rounded-full px-3 py-1.5 text-[10.5px] font-bold font-heading whitespace-nowrap ${
+                    p.est_premium_gestion ? 'bg-red-50 text-red-600 border-2 border-red-100' : 'bg-amber-50 text-gold border-2 border-gold/30'
+                  }`}
+                >
+                  {p.est_premium_gestion ? t('verification.retirerPremium') : t('verification.activerPremium')}
+                </button>
+              </div>
             </div>
           ))}
         </div>

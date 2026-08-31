@@ -46,6 +46,37 @@ export interface ProfilPublic {
 
 export type AnnonceAvecProprietaire = Annonce & { profils: ProfilPublic | null }
 
+export interface BienGere {
+  id: string
+  proprietaire_id: string
+  nom: string
+  adresse: string
+  loyer_mensuel: number
+  jour_echeance: number
+  created_at: string
+}
+
+export interface LocataireGere {
+  id: string
+  bien_id: string
+  nom: string
+  telephone: string
+  date_debut_bail: string | null
+  actif: boolean
+  created_at: string
+}
+
+export interface PaiementLoyer {
+  id: string
+  locataire_id: string
+  mois: string
+  loyer_nu: number
+  charges: number
+  date_paiement: string
+  note: string
+  created_at: string
+}
+
 export interface ProfilColoc {
   utilisateur_id: string
   universite: string

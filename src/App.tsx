@@ -21,6 +21,8 @@ import { Alertes } from './pages/Alertes'
 import { Parametres } from './pages/Parametres'
 import { Signalements } from './pages/Signalements'
 import { VerificationProfils } from './pages/VerificationProfils'
+import { GestionLocative } from './pages/GestionLocative'
+import { BienDetail } from './pages/BienDetail'
 
 function App() {
   return (
@@ -53,6 +55,8 @@ function App() {
                 <Route path="parametres" element={<Parametres />} />
                 <Route path="signalements" element={<Signalements />} />
                 <Route path="verification-profils" element={<VerificationProfils />} />
+                <Route path="gestion-locative" element={<GestionLocative />} />
+                <Route path="gestion-locative/:id" element={<BienDetail />} />
               </Route>
             </Route>
           </Routes>

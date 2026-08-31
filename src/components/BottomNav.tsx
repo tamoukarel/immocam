@@ -4,6 +4,7 @@ import { Home, Search, PlusCircle, User } from 'lucide-react'
 import { useLang } from '../lib/LangContext'
 import { useAuth } from '../lib/AuthContext'
 import { compterNouvellesCorrespondances } from '../lib/alertes'
+import { compterEcheancesProches } from '../lib/gestionLocative'
 import { Pastille } from './Pastille'
 
 const LIENS = [
@@ -18,13 +19,16 @@ export function BottomNav() {
   const { profil } = useAuth()
   const location = useLocation()
   const [nouvellesAlertes, setNouvellesAlertes] = useState(0)
+  const [echeancesProches, setEcheancesProches] = useState(0)
 
   useEffect(() => {
     if (!profil) {
       setNouvellesAlertes(0)
+      setEcheancesProches(0)
       return
     }
     compterNouvellesCorrespondances(profil.id).then(setNouvellesAlertes)
+    compterEcheancesProches(profil.id).then(setEcheancesProches)
   }, [profil, location.pathname])
 
   return (
@@ -41,7 +45,7 @@ export function BottomNav() {
           >
             <span className="relative">
               <Icone size={22} strokeWidth={2.2} />
-              {to === '/profil' && <Pastille n={nouvellesAlertes} />}
+              {to === '/profil' && <Pastille n={nouvellesAlertes + echeancesProches} />}
             </span>
             <span className="text-[11px] font-semibold">{t(cle)}</span>
           </NavLink>

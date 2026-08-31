@@ -28,11 +28,16 @@
 -- `derniere_vue_at` :
 --   alter table profils add column if not exists est_verifie boolean not null default false;
 --   alter table alertes_prix add column if not exists derniere_vue_at timestamptz not null default now();
---   revoke update (est_admin, est_verifie) on table profils from authenticated, anon;
+--   revoke update (est_admin, est_verifie, est_premium_gestion) on table profils from authenticated, anon;
 -- Si le panneau admin /profil/verification-profils n'a pas encore été
 -- déployé sur ce projet (policy "admin lit tous les telephones" et
 -- fonction verifier_profil absentes), rejoue les blocs correspondants plus
 -- bas dans ce fichier.
+-- Si la gestion locative a été déployée avec l'ancienne limite freemium
+-- (1 bien gratuit) plutôt que la nouvelle (3 locataires gratuits) :
+--   drop policy if exists "creer un bien selon limite freemium" on biens_geres;
+--   drop policy if exists "gerer les locataires de ses propres biens" on locataires_geres;
+--   -- puis rejouer les policies biens_geres/locataires_geres plus bas dans ce fichier.
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -56,6 +61,12 @@ create table profils (
   -- Karel via le Table Editor Supabase après vérification (pièce d'identité
   -- + justificatif de propriété envoyés par WhatsApp), jamais automatique.
   est_verifie boolean not null default false,
+  -- Débloque la gestion illimitée de biens (module "Gestion locative",
+  -- 1000 FCFA/mois). Gratuit jusqu'à 1 bien géré (voir policy d'insertion
+  -- sur biens_geres). Activé manuellement par Karel après paiement Mobile
+  -- Money, via le panneau /profil/verification-profils (même mécanisme
+  -- que est_verifie) — jamais par le propriétaire lui-même.
+  est_premium_gestion boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -141,6 +152,27 @@ $$;
 
 grant execute on function verifier_profil(uuid, boolean) to authenticated;
 
+-- Bascule l'accès premium au module "Gestion locative", même principe que
+-- verifier_profil : le revoke sur profils.est_premium_gestion empêche
+-- toute écriture directe, même par un admin ; la fonction fait le contrôle
+-- est_admin elle-même. Karel l'appelle après réception du paiement Mobile
+-- Money (1000 FCFA/mois), depuis /profil/verification-profils.
+create or replace function activer_gestion_premium(p_profil_id uuid, p_actif boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from profils where id = auth.uid() and est_admin) then
+    raise exception 'Non autorisé';
+  end if;
+  update profils set est_premium_gestion = p_actif where id = p_profil_id;
+end;
+$$;
+
+grant execute on function activer_gestion_premium(uuid, boolean) to authenticated;
+
 create table favoris (
   id uuid primary key default gen_random_uuid(),
   utilisateur_id uuid not null references profils(id) on delete cascade,
@@ -171,6 +203,49 @@ create table alertes_prix (
   -- cette alerte. Sert à compter les correspondances "nouvelles depuis ta
   -- dernière visite" (created_at > derniere_vue_at), distinct du total.
   derniere_vue_at timestamptz not null default now()
+);
+
+-- Module "Gestion locative" (payant au-delà d'1 bien, voir
+-- profils.est_premium_gestion) : suivi manuel des loyers par le
+-- propriétaire lui-même, aucun paiement réel n'est traité par l'app.
+create table biens_geres (
+  id uuid primary key default gen_random_uuid(),
+  proprietaire_id uuid not null references profils(id) on delete cascade,
+  nom text not null,
+  adresse text not null default '',
+  loyer_mensuel integer not null check (loyer_mensuel > 0),
+  -- Jour du mois où le loyer est attendu (1-28, pour éviter les soucis de
+  -- mois courts) ; sert au calcul des rappels d'échéance.
+  jour_echeance integer not null check (jour_echeance between 1 and 28),
+  created_at timestamptz not null default now()
+);
+
+-- Un locataire n'a pas besoin d'avoir de compte ImmoCam : c'est une simple
+-- fiche que le propriétaire renseigne lui-même.
+create table locataires_geres (
+  id uuid primary key default gen_random_uuid(),
+  bien_id uuid not null references biens_geres(id) on delete cascade,
+  nom text not null,
+  telephone text not null default '',
+  date_debut_bail date,
+  actif boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Un enregistrement par locataire par mois, coché manuellement par le
+-- propriétaire quand il a reçu le paiement (pas de traitement de paiement
+-- réel — voir la note sur le module plus haut).
+create table paiements_loyer (
+  id uuid primary key default gen_random_uuid(),
+  locataire_id uuid not null references locataires_geres(id) on delete cascade,
+  -- Premier jour du mois concerné (ex: 2026-09-01), pas la date de paiement.
+  mois date not null,
+  loyer_nu integer not null check (loyer_nu >= 0),
+  charges integer not null default 0 check (charges >= 0),
+  date_paiement date not null default current_date,
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  unique (locataire_id, mois)
 );
 
 -- Annuaire public "je cherche un·e coloc" (module Colocation étudiants) —
@@ -208,6 +283,9 @@ alter table annonces enable row level security;
 alter table favoris enable row level security;
 alter table demandes_contact enable row level security;
 alter table alertes_prix enable row level security;
+alter table biens_geres enable row level security;
+alter table locataires_geres enable row level security;
+alter table paiements_loyer enable row level security;
 alter table profils_coloc enable row level security;
 alter table signalements enable row level security;
 
@@ -228,7 +306,7 @@ create policy "modifier son propre profil" on profils
 -- admin via `update profils set est_admin = true where id = auth.uid()`.
 -- Ces colonnes ne sont modifiables que par le rôle "service_role"
 -- (dashboard Supabase / futur back-office), jamais par l'utilisateur lui-même.
-revoke update (est_admin, est_verifie) on table profils from authenticated, anon;
+revoke update (est_admin, est_verifie, est_premium_gestion) on table profils from authenticated, anon;
 
 -- Téléphone : jamais public. Visible seulement par son propriétaire, et par
 -- le propriétaire d'une annonce à qui ce profil a envoyé une demande de
@@ -284,6 +362,62 @@ create policy "voir les demandes sur ses annonces" on demandes_contact
 
 create policy "gerer ses propres alertes" on alertes_prix
   for all using (utilisateur_id = auth.uid()) with check (utilisateur_id = auth.uid());
+
+-- Gestion locative : entièrement privé, un propriétaire ne voit et ne gère
+-- que ses propres biens/locataires/paiements. Créer un bien est toujours
+-- libre (ça ne coûte rien en soi) ; la limite freemium (3 locataires actifs
+-- gratuits au total, illimité si est_premium_gestion) porte sur le nombre
+-- de LOCATAIRES suivis, pas de biens — c'est le vrai facteur de charge
+-- pour le propriétaire, et ça laisse un propriétaire multi-biens ressentir
+-- la valeur du tableau de bord avant de payer.
+create policy "voir ses propres biens" on biens_geres
+  for select using (proprietaire_id = auth.uid());
+create policy "creer ses propres biens" on biens_geres
+  for insert with check (proprietaire_id = auth.uid());
+create policy "modifier ses propres biens" on biens_geres
+  for update using (proprietaire_id = auth.uid());
+create policy "supprimer ses propres biens" on biens_geres
+  for delete using (proprietaire_id = auth.uid());
+
+create policy "voir les locataires de ses propres biens" on locataires_geres
+  for select using (
+    exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+  );
+create policy "creer un locataire selon limite freemium" on locataires_geres
+  for insert with check (
+    exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+    and (
+      (select est_premium_gestion from profils where id = auth.uid())
+      or (
+        select count(*) from locataires_geres l
+        join biens_geres b2 on b2.id = l.bien_id
+        where b2.proprietaire_id = auth.uid() and l.actif
+      ) < 3
+    )
+  );
+create policy "modifier les locataires de ses propres biens" on locataires_geres
+  for update using (
+    exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+  );
+create policy "supprimer les locataires de ses propres biens" on locataires_geres
+  for delete using (
+    exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+  );
+
+create policy "gerer les paiements de ses propres locataires" on paiements_loyer
+  for all using (
+    exists (
+      select 1 from locataires_geres l
+      join biens_geres b on b.id = l.bien_id
+      where l.id = locataire_id and b.proprietaire_id = auth.uid()
+    )
+  ) with check (
+    exists (
+      select 1 from locataires_geres l
+      join biens_geres b on b.id = l.bien_id
+      where l.id = locataire_id and b.proprietaire_id = auth.uid()
+    )
+  );
 
 -- Annuaire coloc public en lecture (comme les annonces), écriture limitée
 -- à son propre profil.
