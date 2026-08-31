@@ -38,6 +38,11 @@
 --   drop policy if exists "creer un bien selon limite freemium" on biens_geres;
 --   drop policy if exists "gerer les locataires de ses propres biens" on locataires_geres;
 --   -- puis rejouer les policies biens_geres/locataires_geres plus bas dans ce fichier.
+-- Si la policy "creer un locataire selon limite freemium" existe déjà mais
+-- interroge encore locataires_geres directement (bug de récursion infinie,
+-- corrigé le 2026-08-29) :
+--   drop policy if exists "creer un locataire selon limite freemium" on locataires_geres;
+--   -- puis rejouer la fonction nb_locataires_actifs et la policy plus bas.
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -172,6 +177,25 @@ end;
 $$;
 
 grant execute on function activer_gestion_premium(uuid, boolean) to authenticated;
+
+-- Compte les locataires actifs d'un propriétaire, en contournant RLS. Une
+-- policy d'insertion sur locataires_geres ne peut pas interroger
+-- locataires_geres elle-même directement (Postgres détecte une récursion
+-- infinie, la policy de lecture se redéclenchant sur la sous-requête) ; ce
+-- security definer casse le cycle. Utilisée par la limite freemium.
+create or replace function nb_locataires_actifs(p_proprietaire_id uuid)
+returns integer
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select count(*)::integer from locataires_geres l
+  join biens_geres b on b.id = l.bien_id
+  where b.proprietaire_id = p_proprietaire_id and l.actif;
+$$;
+
+grant execute on function nb_locataires_actifs(uuid) to authenticated;
 
 create table favoris (
   id uuid primary key default gen_random_uuid(),
@@ -388,11 +412,7 @@ create policy "creer un locataire selon limite freemium" on locataires_geres
     exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
     and (
       (select est_premium_gestion from profils where id = auth.uid())
-      or (
-        select count(*) from locataires_geres l
-        join biens_geres b2 on b2.id = l.bien_id
-        where b2.proprietaire_id = auth.uid() and l.actif
-      ) < 3
+      or nb_locataires_actifs(auth.uid()) < 3
     )
   );
 create policy "modifier les locataires de ses propres biens" on locataires_geres

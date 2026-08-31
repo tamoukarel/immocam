@@ -62,7 +62,10 @@ export function BienDetail() {
     if (!supabase || !id || !nomLocataire.trim()) return
     const { error } = await supabase.from('locataires_geres').insert({ bien_id: id, nom: nomLocataire.trim(), telephone: telLocataire.trim() })
     if (error) {
-      afficherToast(t('gestionLocative.erreurLimiteLocataire'))
+      // 42501 = violation RLS (with check) : c'est précisément la limite
+      // freemium ici, la seule condition du "with check" hors appartenance
+      // du bien. Toute autre erreur est affichée telle quelle, pas devinée.
+      afficherToast(error.code === '42501' ? t('gestionLocative.erreurLimiteLocataire') : t('gestionLocative.erreurGenerique'))
       return
     }
     setNomLocataire('')
