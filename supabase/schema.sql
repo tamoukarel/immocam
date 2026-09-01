@@ -43,6 +43,11 @@
 -- corrigé le 2026-08-29) :
 --   drop policy if exists "creer un locataire selon limite freemium" on locataires_geres;
 --   -- puis rejouer la fonction nb_locataires_actifs et la policy plus bas.
+-- Si "modifier ses propres biens" / "modifier les locataires de ses propres
+-- biens" n'ont pas encore de with check (revue de sécurité du 2026-09-01) :
+--   drop policy if exists "modifier ses propres biens" on biens_geres;
+--   drop policy if exists "modifier les locataires de ses propres biens" on locataires_geres;
+--   -- puis rejouer les deux policies plus bas dans ce fichier.
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -399,7 +404,7 @@ create policy "voir ses propres biens" on biens_geres
 create policy "creer ses propres biens" on biens_geres
   for insert with check (proprietaire_id = auth.uid());
 create policy "modifier ses propres biens" on biens_geres
-  for update using (proprietaire_id = auth.uid());
+  for update using (proprietaire_id = auth.uid()) with check (proprietaire_id = auth.uid());
 create policy "supprimer ses propres biens" on biens_geres
   for delete using (proprietaire_id = auth.uid());
 
@@ -417,6 +422,8 @@ create policy "creer un locataire selon limite freemium" on locataires_geres
   );
 create policy "modifier les locataires de ses propres biens" on locataires_geres
   for update using (
+    exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+  ) with check (
     exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
   );
 create policy "supprimer les locataires de ses propres biens" on locataires_geres

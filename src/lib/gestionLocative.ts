@@ -34,10 +34,16 @@ export async function chargerTableauDeBord(profilId: string): Promise<LocataireA
   const { data: paiements } = await supabase.from('paiements_loyer').select('*').eq('mois', mois).in('locataire_id', locataireIds)
   const paiementParLocataire = new Map((paiements as PaiementLoyer[] | null)?.map((p) => [p.locataire_id, p]) ?? [])
 
-  const aujourdHui = new Date().getDate()
+  const maintenant = new Date()
+  const debutAujourdHui = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()
+  const MS_PAR_JOUR = 86400000
 
   const resultat: LocataireAvecStatut[] = []
   for (const bien of liste) {
+    // Calcul par vraie date (pas une soustraction de jour-du-mois brute) :
+    // robuste même si la contrainte jour_echeance 1-28 change un jour.
+    const dateEcheance = new Date(maintenant.getFullYear(), maintenant.getMonth(), bien.jour_echeance).getTime()
+    const joursAvantEcheance = Math.round((dateEcheance - debutAujourdHui) / MS_PAR_JOUR)
     for (const locataire of bien.locataires_geres) {
       if (!locataire.actif) continue
       const { locataires_geres, ...bienSeul } = bien
@@ -46,7 +52,7 @@ export async function chargerTableauDeBord(profilId: string): Promise<LocataireA
         ...locataire,
         bien: bienSeul,
         paiement: paiementParLocataire.get(locataire.id) ?? null,
-        joursAvantEcheance: bien.jour_echeance - aujourdHui,
+        joursAvantEcheance,
       })
     }
   }

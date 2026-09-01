@@ -23,18 +23,25 @@ export function GestionLocative() {
   const [loyer, setLoyer] = useState('')
   const [jourEcheance, setJourEcheance] = useState('5')
   const [locatairesActifs, setLocatairesActifs] = useState(0)
+  // Lu en direct depuis la base à chaque ouverture de la page, plutôt que de
+  // faire confiance à profil.estPremiumGestion (mis en cache une seule fois
+  // par session dans AuthContext) : si Karel active l'accès pendant que
+  // cette page était déjà ouverte, on veut le voir sans recharger l'app.
+  const [premiumLive, setPremiumLive] = useState<boolean | null>(null)
 
   async function charger() {
     if (!supabase || !profil) return
     setChargement(true)
-    const [{ data: listeBiens }, statuts, nbLocataires] = await Promise.all([
+    const [{ data: listeBiens }, statuts, nbLocataires, { data: profilFrais }] = await Promise.all([
       supabase.from('biens_geres').select('*').eq('proprietaire_id', profil.id).order('created_at', { ascending: false }),
       chargerTableauDeBord(profil.id),
       compterLocatairesActifs(profil.id),
+      supabase.from('profils').select('est_premium_gestion').eq('id', profil.id).single(),
     ])
     setBiens((listeBiens as BienGere[]) ?? [])
     setTableau(statuts)
     setLocatairesActifs(nbLocataires)
+    setPremiumLive((profilFrais as { est_premium_gestion: boolean } | null)?.est_premium_gestion ?? profil.estPremiumGestion)
     setChargement(false)
   }
 
@@ -43,7 +50,8 @@ export function GestionLocative() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profil])
 
-  const limiteAtteinte = !profil?.estPremiumGestion && locatairesActifs >= LIMITE_LOCATAIRES_GRATUIT
+  const estPremium = premiumLive ?? profil?.estPremiumGestion ?? false
+  const limiteAtteinte = !estPremium && locatairesActifs >= LIMITE_LOCATAIRES_GRATUIT
   const enRetardOuProche = tableau.filter((l) => !l.paiement && l.joursAvantEcheance <= 7)
 
   async function creerBien() {
@@ -93,7 +101,7 @@ export function GestionLocative() {
           </button>
         </div>
         <div className={`text-[11px] font-semibold mb-3 ${limiteAtteinte ? 'text-gold' : 'text-slate-400'}`}>
-          {profil?.estPremiumGestion
+          {estPremium
             ? t('gestionLocative.locatairesIllimite')
             : t('gestionLocative.locatairesCompteur', { n: locatairesActifs, max: LIMITE_LOCATAIRES_GRATUIT })}
         </div>

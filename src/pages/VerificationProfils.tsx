@@ -26,11 +26,23 @@ export function VerificationProfils() {
 
   async function charger() {
     if (!supabase || !profil?.estAdmin) return
-    const { data } = await supabase
-      .from('profils')
-      .select('id, nom, photo, est_verifie, est_premium_gestion, profils_prive(telephone), annonces!inner(id)')
-      .order('nom')
-    setProprietaires((data as unknown as Proprietaire[]) ?? [])
+    // Deux requêtes fusionnées : un propriétaire doit apparaître ici s'il a
+    // publié une annonce OU s'il utilise la Gestion locative (même sans
+    // jamais avoir publié) — un simple `annonces!inner` exclurait ce
+    // second cas, alors que c'est justement lui qu'on veut pouvoir activer
+    // en premium.
+    const champs = 'id, nom, photo, est_verifie, est_premium_gestion, profils_prive(telephone)'
+    const [{ data: parAnnonces }, { data: parBiens }] = await Promise.all([
+      supabase.from('profils').select(`${champs}, annonces!inner(id)`),
+      supabase.from('profils').select(`${champs}, biens_geres!inner(id)`),
+    ])
+
+    const fusion = new Map<string, Proprietaire>()
+    for (const p of (parAnnonces as unknown as Proprietaire[]) ?? []) fusion.set(p.id, p)
+    for (const p of (parBiens as unknown as Proprietaire[]) ?? []) {
+      if (!fusion.has(p.id)) fusion.set(p.id, { ...p, annonces: [] })
+    }
+    setProprietaires(Array.from(fusion.values()).sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? '')))
   }
 
   useEffect(() => {
