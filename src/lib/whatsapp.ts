@@ -31,4 +31,4 @@ export async function contacterProprietaire(annonce: Annonce, utilisateurId: str
   window.open(lienWhatsapp(annonce.whatsapp, texte), '_blank')
 }
 
-export const NUMERO_SUPPORT = '237653905975'
+export const NUMERO_SUPPORT = '237697002986'
