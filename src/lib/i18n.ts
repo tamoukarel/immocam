@@ -100,8 +100,8 @@ export const TRADUCTIONS: Record<string, { fr: string; en: string }> = {
   'detail.nbAnnonces': { fr: '{n} annonce{s}', en: '{n} listing{s}' },
   'detail.profilVerifie': { fr: 'Qu’est-ce qu’un profil vérifié ?', en: 'What is a verified profile?' },
   'detail.profilVerifieExplication': {
-    fr: 'Ce badge signifie que Karel a vérifié la pièce d’identité et un justificatif de propriété de cette personne, envoyés par WhatsApp. Ce n’est pas automatique.',
-    en: 'This badge means Karel has verified this person’s ID and proof of ownership, sent via WhatsApp. It is never automatic.',
+    fr: 'Ce badge signifie qu’ImmoCam a vérifié la pièce d’identité et un justificatif de propriété de cette personne, envoyés par WhatsApp. Ce n’est pas automatique.',
+    en: 'This badge means ImmoCam has verified this person’s ID and proof of ownership, sent via WhatsApp. It is never automatic.',
   },
   'detail.utilisateurAnonyme': { fr: 'Utilisateur ImmoCam', en: 'ImmoCam user' },
   'detail.whatsapp': { fr: 'WhatsApp', en: 'WhatsApp' },
