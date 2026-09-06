@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, GraduationCap, Wallet, Palmtree, Home as HomeIcon, ArrowRight } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Search, GraduationCap, Wallet, Palmtree, Home as HomeIcon, ArrowRight, Info } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { AnnonceAvecProprietaire } from '../lib/types'
 import { VILLES } from '../lib/types'
 import { AnnonceCard } from '../components/AnnonceCard'
+import { CarrouselVedette } from '../components/CarrouselVedette'
 import { useLang } from '../lib/LangContext'
 
 const ICONES_VILLE: Record<string, string> = {
@@ -90,7 +91,11 @@ export function Accueil() {
         </div>
       </div>
 
-      <div className="px-5 pt-4 pb-2.5">
+      <div className="pt-4">
+        <CarrouselVedette />
+      </div>
+
+      <div className="px-5 pt-1 pb-2.5">
         <SectionTitle titre={t('accueil.choisirVille')} />
       </div>
       <div className="flex gap-2 px-5 pb-3.5 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible">
@@ -145,6 +150,15 @@ export function Accueil() {
         {annonces.map((a) => (
           <AnnonceCard key={a.id} annonce={a} />
         ))}
+      </div>
+
+      <div className="px-5 pb-6">
+        <Link
+          to="/a-propos"
+          className="flex items-center justify-center gap-1.5 text-xs font-bold font-heading text-brand-blue border-2 border-brand-blue rounded-full py-2.5"
+        >
+          <Info size={14} /> {t('accueil.enSavoirPlus')}
+        </Link>
       </div>
     </div>
   )

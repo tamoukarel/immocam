@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag, BadgeCheck, Building2 } from 'lucide-react'
+import { Home, Heart, MessageCircle, Bell, Settings, Phone, User, Flag, BadgeCheck, Building2, Info } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { NUMERO_SUPPORT, lienWhatsapp } from '../lib/whatsapp'
@@ -25,6 +25,7 @@ export function Profil() {
     { to: '/profil/messages', icone: MessageCircle, label: t('profil.menu.messages'), badge: 0 },
     { to: '/profil/alertes', icone: Bell, label: t('profil.menu.alertes'), badge: nouvellesAlertes },
     { to: '/profil/parametres', icone: Settings, label: t('profil.menu.parametres'), badge: 0 },
+    { to: '/a-propos', icone: Info, label: t('profil.menu.aPropos'), badge: 0 },
   ]
 
   useEffect(() => {

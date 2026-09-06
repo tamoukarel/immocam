@@ -23,6 +23,7 @@ import { Signalements } from './pages/Signalements'
 import { VerificationProfils } from './pages/VerificationProfils'
 import { GestionLocative } from './pages/GestionLocative'
 import { BienDetail } from './pages/BienDetail'
+import { APropos } from './pages/APropos'
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="coloc" element={<Coloc />} />
               <Route path="budget" element={<Budget />} />
               <Route path="courte-duree" element={<CourteDuree />} />
+              <Route path="a-propos" element={<APropos />} />
 
               <Route path="publier" element={<ProtectedRoute />}>
                 <Route index element={<Publier />} />
