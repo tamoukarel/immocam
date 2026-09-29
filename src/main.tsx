@@ -1,12 +1,20 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
+import * as Sentry from '@sentry/react'
 import './index.css'
 import App from './App.tsx'
+import { demarrerSurveillance, sentryActif } from './lib/surveillance'
+
+demarrerSurveillance()
 
 registerSW({ immediate: true })
 
-createRoot(document.getElementById('root')!).render(
+// Les erreurs de rendu React partent aussi vers Sentry quand il est actif
+createRoot(
+  document.getElementById('root')!,
+  sentryActif ? { onUncaughtError: Sentry.reactErrorHandler(), onCaughtError: Sentry.reactErrorHandler() } : undefined,
+).render(
   <StrictMode>
     <App />
   </StrictMode>,
