@@ -51,7 +51,8 @@ export function Profil() {
           <div className="w-[72px] h-[72px] rounded-full bg-blue-light flex items-center justify-center mx-auto mb-2.5 border-2 border-slate-100 overflow-hidden">
             {profil?.photo ? <img src={urlPhoto(profil.photo)} className="w-full h-full object-cover" /> : <User size={30} className="text-brand-blue" />}
           </div>
-          <div className="font-heading font-extrabold text-lg text-navy mb-1">{profil?.nom || profil?.telephone || t('profil.monProfil')}</div>
+          {/* data-clarity-mask : ce champ peut afficher le téléphone (repli si pas de nom) — jamais capturé par l'enregistrement de session Microsoft Clarity. */}
+          <div data-clarity-mask="true" className="font-heading font-extrabold text-lg text-navy mb-1">{profil?.nom || profil?.telephone || t('profil.monProfil')}</div>
           <span className="text-[10px] text-brand-blue bg-blue-light border border-brand-blue/20 rounded-full px-3.5 py-1 font-semibold font-heading">
             {t('profil.role')}
           </span>

@@ -99,7 +99,8 @@ export function Connexion() {
           </div>
         </div>
         <h1 className="font-heading text-xl font-bold text-navy mb-1.5">{t('connexion.titre')}</h1>
-        <p className="text-xs text-slate-500 mb-6">
+        {/* data-clarity-mask : affiche le téléphone en cours de saisie une fois le code envoyé. */}
+        <p data-clarity-mask="true" className="text-xs text-slate-500 mb-6">
           {etape === 'telephone' ? t('connexion.recevoirCode') : t('connexion.codeEnvoye', { numero: versE164(telephone) })}
         </p>
 

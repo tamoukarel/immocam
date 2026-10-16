@@ -48,7 +48,8 @@ export function Messages() {
                 <User size={16} />
               </span>
               <div>
-                <div className="font-heading font-bold text-sm text-navy">
+                {/* data-clarity-mask : peut afficher le téléphone de l'expéditeur (repli si pas de nom) — jamais capturé par Microsoft Clarity. */}
+                <div data-clarity-mask="true" className="font-heading font-bold text-sm text-navy">
                   {d.expediteur?.nom || d.expediteur?.profils_prive?.telephone || t('detail.utilisateurAnonyme')}
                 </div>
                 <div className="text-[10px] text-slate-400">

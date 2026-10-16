@@ -65,7 +65,8 @@ export function Parametres() {
 
         <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-4">
           <div className="text-[10px] font-bold text-brand-blue uppercase tracking-wide font-heading mb-1">{t('parametres.numeroCompte')}</div>
-          <div className="text-sm font-semibold text-navy">{profil?.telephone}</div>
+          {/* data-clarity-mask : jamais capturé par l'enregistrement de session Microsoft Clarity. */}
+          <div data-clarity-mask="true" className="text-sm font-semibold text-navy">{profil?.telephone}</div>
         </div>
 
         <div className="bg-white rounded-2xl border-2 border-slate-100 p-4 shadow-sm mb-4">

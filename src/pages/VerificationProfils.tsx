@@ -119,7 +119,8 @@ export function VerificationProfils() {
                   {p.nom || t('detail.utilisateurAnonyme')}
                   {p.est_verifie && <BadgeCheck size={14} className="text-teal flex-shrink-0" />}
                 </div>
-                <div className="text-[11px] text-slate-500">{telephone(p) || t('verification.telephoneInconnu')}</div>
+                {/* data-clarity-mask : cette page regroupe le téléphone de plusieurs utilisateurs — jamais capturé par Microsoft Clarity. */}
+                <div data-clarity-mask="true" className="text-[11px] text-slate-500">{telephone(p) || t('verification.telephoneInconnu')}</div>
                 <div className="text-[10px] text-slate-400 flex items-center gap-1">
                   {t('detail.nbAnnonces', { n: p.annonces.length, s: p.annonces.length > 1 ? 's' : '' })}
                   {p.est_premium_gestion && <Building2 size={11} className="text-gold" />}

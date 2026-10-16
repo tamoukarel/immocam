@@ -168,7 +168,8 @@ export function BienDetail() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-heading font-bold text-sm text-navy truncate">{l.nom}</div>
-                    <div className="text-[11px] text-slate-500">{l.telephone}</div>
+                    {/* data-clarity-mask : téléphone du locataire — jamais capturé par Microsoft Clarity. */}
+                    <div data-clarity-mask="true" className="text-[11px] text-slate-500">{l.telephone}</div>
                   </div>
                   <button onClick={() => retirerLocataire(l.id)} className="text-slate-300 flex-shrink-0">
                     <Trash2 size={15} />

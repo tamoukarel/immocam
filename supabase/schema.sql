@@ -48,6 +48,28 @@
 --   drop policy if exists "modifier ses propres biens" on biens_geres;
 --   drop policy if exists "modifier les locataires de ses propres biens" on locataires_geres;
 --   -- puis rejouer les deux policies plus bas dans ce fichier.
+-- URGENT, à rejouer immédiatement sur tout projet où ce n'est pas encore fait
+-- (faille critique corrigée le 2026-10-16, audit de sécurité) : la policy
+-- "creer son propre profil" ne bloquait que `id`, pas `est_admin`/
+-- `est_verifie`/`est_premium_gestion` — n'importe qui pouvait s'auto-créer
+-- admin à l'inscription. Correctif minimal, sans toucher au reste :
+--   drop policy if exists "creer son propre profil" on profils;
+--   create policy "creer son propre profil" on profils
+--     for insert with check (id = auth.uid() and not est_admin and not est_verifie and not est_premium_gestion);
+--   revoke insert (est_admin, est_verifie, est_premium_gestion) on table profils from authenticated, anon;
+-- Puis vérifie si la faille a déjà été utilisée sur ce projet :
+--   select id, nom, est_admin, est_verifie, est_premium_gestion, created_at from profils where est_admin;
+-- À rejouer aussi (faille moyenne corrigée le 2026-10-16, même audit) : le
+-- téléphone de `profils_prive` n'était jamais comparé au numéro vérifié par
+-- OTP. Correctif minimal :
+--   drop policy if exists "creer son propre telephone" on profils_prive;
+--   create policy "creer son propre telephone" on profils_prive
+--     for insert with check (id = auth.uid() and telephone = (auth.jwt() ->> 'phone'));
+--   drop policy if exists "modifier son propre telephone" on profils_prive;
+--   create policy "modifier son propre telephone" on profils_prive
+--     for update using (id = auth.uid()) with check (id = auth.uid() and telephone = (auth.jwt() ->> 'phone'));
+-- et repasse à `false` tout compte admin que tu n'as pas toi-même activé via
+-- le Table Editor.
 
 create type type_annonce as enum ('location', 'vente');
 create type statut_annonce as enum ('dispo', 'loue');
@@ -323,8 +345,15 @@ alter table signalements enable row level security;
 -- sensible dans cette table, donc `using (true)` est sans risque ici.
 create policy "lecture publique des profils" on profils
   for select using (true);
+-- Faille critique corrigée le 2026-10-16 (audit de sécurité) : la policy
+-- d'insertion ne vérifiait que `id = auth.uid()`, et le revoke plus bas ne
+-- portait que sur UPDATE. N'importe quel nouvel utilisateur pouvait donc
+-- créer sa propre ligne `profils` directement avec `est_admin: true` (INSERT
+-- n'était jamais bloqué) et devenir administrateur lui-même. Le with check
+-- ci-dessous force ces trois colonnes à leur valeur par défaut (false) à la
+-- création : impossible de s'auto-promouvoir, même en contournant l'appli.
 create policy "creer son propre profil" on profils
-  for insert with check (id = auth.uid());
+  for insert with check (id = auth.uid() and not est_admin and not est_verifie and not est_premium_gestion);
 create policy "modifier son propre profil" on profils
   for update using (id = auth.uid()) with check (id = auth.uid());
 
@@ -335,6 +364,11 @@ create policy "modifier son propre profil" on profils
 -- admin via `update profils set est_admin = true where id = auth.uid()`.
 -- Ces colonnes ne sont modifiables que par le rôle "service_role"
 -- (dashboard Supabase / futur back-office), jamais par l'utilisateur lui-même.
+-- Le revoke couvre maintenant aussi INSERT (pas seulement UPDATE comme avant
+-- le 2026-10-16) : en plus du with check ci-dessus, une seconde barrière
+-- indépendante au niveau des droits Postgres, pour qu'une erreur dans l'une
+-- des deux ne laisse jamais la faille réapparaître seule.
+revoke insert (est_admin, est_verifie, est_premium_gestion) on table profils from authenticated, anon;
 revoke update (est_admin, est_verifie, est_premium_gestion) on table profils from authenticated, anon;
 
 -- Téléphone : jamais public. Visible seulement par son propriétaire, et par
@@ -349,15 +383,23 @@ create policy "voir son propre telephone" on profils_prive
         and d.proprietaire_id = auth.uid()
     )
   );
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : ces deux policies ne
+-- vérifiaient que `id = auth.uid()`, jamais la valeur de `telephone` elle-même.
+-- N'importe qui pouvait donc écrire un numéro inventé à la place du sien,
+-- vérifié par SMS — et ce faux numéro était ensuite montré comme fiable à
+-- l'admin (vérification de profil) et aux propriétaires qui rappellent un
+-- visiteur intéressé. `auth.jwt() ->> 'phone'` est le numéro que Supabase a
+-- lui-même vérifié par OTP pour la session en cours : impossible d'y mettre
+-- autre chose que son propre numéro réel.
 create policy "creer son propre telephone" on profils_prive
-  for insert with check (id = auth.uid());
+  for insert with check (id = auth.uid() and telephone = (auth.jwt() ->> 'phone'));
 -- Un admin peut voir le téléphone de n'importe quel profil, pour retrouver
 -- la bonne personne quand elle envoie sa pièce d'identité par WhatsApp
 -- (panneau /profil/verification-profils).
 create policy "admin lit tous les telephones" on profils_prive
   for select using (exists (select 1 from profils p where p.id = auth.uid() and p.est_admin));
 create policy "modifier son propre telephone" on profils_prive
-  for update using (id = auth.uid()) with check (id = auth.uid());
+  for update using (id = auth.uid()) with check (id = auth.uid() and telephone = (auth.jwt() ->> 'phone'));
 
 -- Annonces publiques en lecture (pas besoin de compte pour parcourir/chercher
 -- un logement, seulement pour publier ou contacter).
