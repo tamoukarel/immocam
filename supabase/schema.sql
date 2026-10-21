@@ -68,6 +68,15 @@
 --   drop policy if exists "modifier son propre telephone" on profils_prive;
 --   create policy "modifier son propre telephone" on profils_prive
 --     for update using (id = auth.uid()) with check (id = auth.uid() and telephone = (auth.jwt() ->> 'phone'));
+-- À rejouer aussi (6 failles faibles corrigées le 2026-10-16, même audit) :
+-- rejoue simplement les blocs modifiés plus bas dans ce fichier (fonctions
+-- nb_locataires_actifs/nb_annonces_actives en `create or replace`, policies
+-- en `drop policy if exists` + `create policy`). Pour la contrainte sur
+-- `annonces.whatsapp`, la table existe déjà avec des données : utilise
+-- `not valid` pour ne pas risquer un blocage sur une ancienne ligne mal
+-- formée, puis valide à part une fois les données nettoyées si besoin :
+--   alter table annonces add constraint annonces_whatsapp_check
+--     check (whatsapp ~ '^[0-9]{8,15}$') not valid;
 -- et repasse à `false` tout compte admin que tu n'as pas toi-même activé via
 -- le Table Editor.
 
@@ -123,7 +132,9 @@ create table annonces (
   description text not null default '',
   -- Contact direct : pas de messagerie interne, la mise en relation se fait
   -- sur WhatsApp (voir demandes_contact pour la trace côté propriétaire).
-  whatsapp text not null,
+  -- Chiffres uniquement (le client enlève déjà espaces/tirets avant d'enregistrer) :
+  -- corrige une faille où ce format n'était imposé que côté appli, jamais en base.
+  whatsapp text not null check (whatsapp ~ '^[0-9]{8,15}$'),
   -- Jusqu'à 5 chemins d'objets dans le bucket Storage "annonces" (pas des
   -- URLs complètes, pour pouvoir régénérer des URLs signées si le bucket
   -- passe un jour en privé).
@@ -210,19 +221,54 @@ grant execute on function activer_gestion_premium(uuid, boolean) to authenticate
 -- locataires_geres elle-même directement (Postgres détecte une récursion
 -- infinie, la policy de lecture se redéclenchant sur la sous-requête) ; ce
 -- security definer casse le cycle. Utilisée par la limite freemium.
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : accessible directement
+-- en RPC par n'importe quel utilisateur connecté, avec le numéro de compte
+-- de n'importe quel propriétaire, cette fonction révélait le nombre de
+-- locataires actifs de n'importe qui. Le contrôle ci-dessous la réserve au
+-- propriétaire concerné (seul appelant légitime, via la policy plus bas) et
+-- à l'administrateur.
 create or replace function nb_locataires_actifs(p_proprietaire_id uuid)
 returns integer
-language sql
+language plpgsql
 security definer
 set search_path = public
 stable
 as $$
-  select count(*)::integer from locataires_geres l
-  join biens_geres b on b.id = l.bien_id
-  where b.proprietaire_id = p_proprietaire_id and l.actif;
+begin
+  if p_proprietaire_id <> auth.uid() and not exists (select 1 from profils where id = auth.uid() and est_admin) then
+    raise exception 'Non autorisé';
+  end if;
+  return (select count(*)::integer from locataires_geres l
+    join biens_geres b on b.id = l.bien_id
+    where b.proprietaire_id = p_proprietaire_id and l.actif);
+end;
 $$;
 
 grant execute on function nb_locataires_actifs(uuid) to authenticated;
+
+-- Ajoutée le 2026-10-16 (audit de sécurité) : rien ne limitait le nombre
+-- d'annonces qu'un compte pouvait publier, contrairement au module Gestion
+-- locative qui a déjà sa propre limite. Un compte aurait pu en publier des
+-- milliers par script, dégradant la recherche pour tout le monde et gonflant
+-- la facture Supabase. 30 annonces actives est large (un propriétaire
+-- normal, même avec plusieurs biens, n'en approche pas) ; à ajuster si un
+-- vrai usage légitime le dépasse un jour.
+create or replace function nb_annonces_actives(p_proprietaire_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+begin
+  if p_proprietaire_id <> auth.uid() and not exists (select 1 from profils where id = auth.uid() and est_admin) then
+    raise exception 'Non autorisé';
+  end if;
+  return (select count(*)::integer from annonces where proprietaire_id = p_proprietaire_id);
+end;
+$$;
+
+grant execute on function nb_annonces_actives(uuid) to authenticated;
 
 create table favoris (
   id uuid primary key default gen_random_uuid(),
@@ -405,8 +451,11 @@ create policy "modifier son propre telephone" on profils_prive
 -- un logement, seulement pour publier ou contacter).
 create policy "lecture publique des annonces" on annonces
   for select using (true);
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : aucune limite au
+-- nombre d'annonces qu'un compte pouvait publier (voir nb_annonces_actives
+-- ci-dessus). 30 annonces actives gratuites par compte.
 create policy "creer ses propres annonces" on annonces
-  for insert with check (proprietaire_id = auth.uid());
+  for insert with check (proprietaire_id = auth.uid() and nb_annonces_actives(auth.uid()) < 30);
 create policy "modifier ses propres annonces" on annonces
   for update using (proprietaire_id = auth.uid()) with check (proprietaire_id = auth.uid());
 create policy "supprimer ses propres annonces" on annonces
@@ -426,8 +475,16 @@ create policy "retirer ses propres favoris" on favoris
 -- N'importe quel utilisateur connecté peut signaler un contact (c'est lui
 -- l'expéditeur) ; seul le propriétaire de l'annonce visée peut consulter
 -- la liste ensuite.
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : rien ne vérifiait que
+-- proprietaire_id correspondait au vrai propriétaire de annonce_id — on
+-- pouvait attribuer une fausse demande à n'importe quel profil, polluant sa
+-- boîte "Messages reçus" (pas de fuite de téléphone d'un tiers : seul le
+-- numéro de l'expéditeur, déjà le sien, devenait visible).
 create policy "signaler une demande de contact" on demandes_contact
-  for insert with check (expediteur_id = auth.uid());
+  for insert with check (
+    expediteur_id = auth.uid()
+    and proprietaire_id = (select proprietaire_id from annonces where id = annonce_id)
+  );
 create policy "voir les demandes sur ses annonces" on demandes_contact
   for select using (proprietaire_id = auth.uid());
 
@@ -462,11 +519,32 @@ create policy "creer un locataire selon limite freemium" on locataires_geres
       or nb_locataires_actifs(auth.uid()) < 3
     )
   );
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : cette policy ne
+-- vérifiait que la propriété du bien, jamais la limite freemium. Un
+-- propriétaire pouvait créer des locataires avec actif=false (toujours
+-- accepté, car jamais comptés par nb_locataires_actifs) puis les basculer
+-- tous à actif=true par UPDATE, dépassant la limite de 3 gratuits sans payer
+-- l'abonnement. On exclut la ligne modifiée elle-même du décompte (sinon
+-- impossible de simplement corriger le nom/téléphone d'un locataire déjà
+-- actif une fois à la limite). Limite connue : comme ce contrôle se refait
+-- ligne par ligne sur l'état de la table au début de la requête, un seul
+-- UPDATE qui bascule plusieurs lignes à la fois peut encore passer au-delà
+-- de 3 ; fermer complètement ce cas demanderait un trigger, pas seulement
+-- une policy — à faire si ça devient un vrai problème en pratique.
 create policy "modifier les locataires de ses propres biens" on locataires_geres
   for update using (
     exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
   ) with check (
     exists (select 1 from biens_geres b where b.id = bien_id and b.proprietaire_id = auth.uid())
+    and (
+      not actif
+      or (select est_premium_gestion from profils where id = auth.uid())
+      or (
+        select count(*) from locataires_geres l2
+        join biens_geres b2 on b2.id = l2.bien_id
+        where b2.proprietaire_id = auth.uid() and l2.actif and l2.id <> locataires_geres.id
+      ) < 3
+    )
   );
 create policy "supprimer les locataires de ses propres biens" on locataires_geres
   for delete using (
@@ -502,8 +580,17 @@ create policy "supprimer son profil coloc" on profils_coloc
 -- Signalements : n'importe qui peut signaler une annonce (même sans compte,
 -- pour ne pas dissuader de signaler une arnaque) ; seul un compte admin
 -- (profils.est_admin) peut relire la liste, depuis /profil/signalements.
+-- Faille corrigée le 2026-10-16 (audit de sécurité) : `with check (true)`
+-- n'imposait aucune limite de taille sur `motif`, et un utilisateur connecté
+-- pouvait attribuer son signalement à n'importe quel autre profil
+-- (expediteur_id n'était jamais comparé à auth.uid()). Le texte reste libre
+-- (motif), mais borné ; expediteur_id doit être vide (signalement anonyme)
+-- ou être le sien.
 create policy "signaler une annonce" on signalements
-  for insert with check (true);
+  for insert with check (
+    char_length(motif) <= 500
+    and (expediteur_id is null or expediteur_id = auth.uid())
+  );
 create policy "admin voit tous les signalements" on signalements
   for select using (exists (select 1 from profils p where p.id = auth.uid() and p.est_admin));
 create policy "admin supprime les signalements traites" on signalements
